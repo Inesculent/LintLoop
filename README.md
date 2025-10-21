@@ -1,4 +1,4 @@
-﻿# LinterLoop
+﻿# LintLoop
 
 Full-stack coding practice platform with automated code grading focused on style, readability, and performance.
 
@@ -40,33 +40,33 @@ Full-stack coding practice platform with automated code grading focused on style
 ### Installation
 
 1. Clone the repository
-\\\ash
-git clone https://github.com/yourusername/linterloop.git
-cd linterloop
-\\\
+```bash
+git clone https://github.com/Inesculent/LintLoop.git
+cd LintLoop
+```
 
 2. Install backend dependencies
-\\\ash
+```bash
 cd backend
 npm install
-\\\
+```
 
 3. Set up environment variables
-\\\ash
+```bash
 copy .env.example .env
 # Edit .env with your configuration
-\\\
+```
 
 4. Start the development server
-\\\ash
+```bash
 npm run dev
-\\\
+```
 
 The API will be available at http://localhost:5000
 
 ## Development
 
-\\\ash
+```bash
 # Run in development mode with auto-reload
 npm run dev
 
@@ -75,7 +75,7 @@ npm run build
 
 # Run production build
 npm start
-\\\
+```
 
 ## Deployment
 
@@ -83,11 +83,12 @@ Automatic deployment via GitHub Actions to DigitalOcean on every push to main br
 
 ## API Endpoints
 
-- \GET /\ - API information
-- \GET /health\ - Health check
-- \GET /api/problems\ - List all problems
-- \POST /api/submissions\ - Submit code for grading
-- \POST /api/execute\ - Execute code
+- `GET /` - API information
+- `GET /health` - Health check
+- `GET /api/problems` - List all problems
+- `POST /api/submissions` - Submit code for grading
+- `POST /api/execute` - Execute code
+- `GET /api/test` - Test endpoint
 
 ## Grading System
 
@@ -100,8 +101,8 @@ Code submissions are graded on four criteria:
 
 ## Project Structure
 
-\\\
-linterloop/
+```
+LintLoop/
 ├── backend/
 │   ├── dist/              # Compiled JavaScript
 │   ├── server.ts
@@ -115,7 +116,7 @@ linterloop/
 │   └── src/
 ├── mobile/
 └── README.md
-\\\
+```
 
 ## License
 
