@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import executeRoutes = require('./routes/execute');
 import runSolutionRoutes = require('./routes/runSolution');
 import testRoutes = require('./routes/test');
+import problemRoutes = require('./routes/problems');
 const dockerUtils = require('./utils/docker');
 
 dotenv.config();
@@ -71,6 +72,7 @@ app.get('/', (_req: Request, res: Response) => {
 app.use('/api/execute', executeRoutes);
 app.use('/api/run-solution', runSolutionRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/problems', problemRoutes);
 
 // Start server
 // Start server
