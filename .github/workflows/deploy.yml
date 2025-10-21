@@ -1,0 +1,49 @@
+﻿name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Deploy to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        script: |
+          echo "Starting deployment..."
+          
+          cd ~/linterloop
+          
+          echo "Pulling latest code..."
+          git pull origin main
+          
+          echo "Installing dependencies..."
+          cd backend
+          npm install --production
+          
+          echo "Building TypeScript..."
+          npm run build
+          
+          echo "Restarting application..."
+          pm2 restart linterloop-backend || pm2 start dist/server.js --name linterloop-backend
+          
+          echo "Deployment complete"
+          pm2 status
+          
+    - name: Notify on success
+      if: success()
+      run: echo "Deployment successful"
+      
+    - name: Notify on failure
+      if: failure()
+      run: echo "Deployment failed"
