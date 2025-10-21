@@ -1,31 +1,31 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 // Interfaces for type safety
-interface ITestCase {
+export interface ITestCase {
   input: any;
   output: any;
   explanation?: string;
   isVisible: boolean;
 }
 
-interface IParameter {
+export interface IParameter {
   name: string;
   type: string;
 }
 
-interface IFunctionSignature {
+export interface IFunctionSignature {
   name: string;
   returnType: string;
   parameters: IParameter[];
 }
 
-interface IExample {
+export interface IExample {
   input: string;
   output: string;
   explanation?: string;
 }
 
-interface IProblem extends Document {
+export interface IProblem extends Document {
   pid: number;
   title: string;
   problemStatement: string;

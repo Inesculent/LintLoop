@@ -1,11 +1,11 @@
-import Problem from "../models/Problems"
+import Problem, { IProblem } from "../models/Problems"
 import { FilterQuery } from "mongoose";
 
 //get all of the problems (maybe filter by difficulty or tags
 export const getAllProblems = async (filters: {
   difficulty?: string;
   tags?: string[];
-} = {}) => {
+} = {}): Promise<IProblem[]> => {
   const query: FilterQuery<any> = {};
 
   if (filters.difficulty) {
@@ -20,18 +20,18 @@ export const getAllProblems = async (filters: {
 };
 
 //get one problem by the problem ID
-export const getProblemByPid = async (pid: number) => {
+export const getProblemByPid = async (pid: number): Promise<IProblem | null> => {
   return await Problem.findOne({ pid });
 };
 
 // add a new problem
-export const createProblem = async (problemData: any) => {
+export const createProblem = async (problemData: any): Promise<IProblem> => {
   const problem = new Problem(problemData);
   return await problem.save();
 };
 
 //update existing problem
-export const updateProblemByPid = async (pid: number, updates: any) => {
+export const updateProblemByPid = async (pid: number, updates: any): Promise<IProblem | null> => {
   return await Problem.findOneAndUpdate(
     { pid },
     { $set: updates, updatedAt: new Date() },
@@ -40,12 +40,12 @@ export const updateProblemByPid = async (pid: number, updates: any) => {
 };
 
 // delete a problem by pid
-export const deleteProblemByPid = async (pid: number) => {
+export const deleteProblemByPid = async (pid: number): Promise<IProblem | null> => {
   return await Problem.findOneAndDelete({ pid });
 };
 
 // search by title or tags
-export const searchProblems = async (query: string) => {
+export const searchProblems = async (query: string): Promise<IProblem[]> => {
   return await Problem.find({
     $or: [
       { title: { $regex: query, $options: "i" } }, // case-insensitive match
