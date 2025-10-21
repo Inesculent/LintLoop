@@ -1,5 +1,4 @@
 ﻿name: Deploy to DigitalOcean
-
 on:
   push:
     branches: [ main ]
@@ -22,6 +21,7 @@ jobs:
         script: |
           echo "Starting deployment..."
           
+          # Navigate to project directory
           cd ~/linterloop
           
           echo "Pulling latest code..."
@@ -29,21 +29,34 @@ jobs:
           
           echo "Installing dependencies..."
           cd backend
-          npm install --production
+          npm install
           
           echo "Building TypeScript..."
           npm run build
           
-          echo "Restarting application..."
+          echo "Removing dev dependencies..."
+          npm prune --production
+          
+          echo "Pulling Docker images for code execution..."
+          docker pull python:3.9-slim
+          docker pull openjdk:11-slim
+          
+          echo "Restarting application with PM2..."
           pm2 restart linterloop-backend || pm2 start dist/server.js --name linterloop-backend
           
-          echo "Deployment complete"
+          echo "Saving PM2 process list..."
+          pm2 save
+          
+          echo "Deployment complete!"
+          echo "----------------------------------------"
           pm2 status
+          echo "----------------------------------------"
+          docker images | grep -E "python|openjdk"
           
     - name: Notify on success
       if: success()
-      run: echo "Deployment successful"
+      run: echo "✅ Deployment successful!"
       
     - name: Notify on failure
       if: failure()
-      run: echo "Deployment failed"
+      run: echo "❌ Deployment failed - check logs above"
