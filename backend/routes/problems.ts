@@ -17,16 +17,21 @@ router.get('/', async (req: Request, res: Response) => {
     const problems = await problemQueries.getAllProblems(filters);
     res.json(problems);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch problems' });
+    console.error('Error fetching problems:', error);
+    res.status(500).json({ error: 'Failed to fetch problems', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
 router.get('/:pid', async (req: Request, res: Response) => {
   try {
     const problem = await problemQueries.getProblemByPid(parseInt(req.params.pid));
+    if (!problem) {
+      return res.status(404).json({ error: 'Problem not found' });
+    }
     res.json(problem);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch problem' });
+    console.error('Error fetching problem:', error);
+    res.status(500).json({ error: 'Failed to fetch problem', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -37,7 +42,8 @@ router.post('/', authenticate, requireAdmin, async (req: Request, res : Response
         const problem = await problemQueries.createProblem(req.body);
         res.status(201).json(problem);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create problem' });
+        console.error('Error creating problem:', error);
+        res.status(500).json({ error: 'Failed to create problem', details: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
 
