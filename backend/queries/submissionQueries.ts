@@ -1,4 +1,4 @@
-import Submission from "../models/submissions";
+import Submission from "../models/Submissions";
 import { Types } from "mongoose";
 
 //Add a new submission
