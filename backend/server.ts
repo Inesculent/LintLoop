@@ -73,8 +73,11 @@ app.use('/api/run-solution', runSolutionRoutes);
 app.use('/api/test', testRoutes);
 
 // Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+// Start server
+// Start server
+const PORT = parseInt(process.env.PORT || '5000', 10);
+app.listen(PORT, '0.0.0.0', () => {
   console.log('Server running on port ' + PORT);
   console.log('Environment: ' + (process.env.NODE_ENV || 'development'));
+  console.log('Server accessible at http://0.0.0.0:' + PORT);
 });
