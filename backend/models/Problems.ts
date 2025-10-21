@@ -82,13 +82,15 @@ const testCaseSchema = new Schema<ITestCase>({
   }
 }, { _id: false });
 
+const parameterSchema = new Schema<IParameter>({
+  name: { type: String, required: true },
+  type: { type: String, required: true }
+}, { _id: false });
+
 const functionSignatureSchema = new Schema<IFunctionSignature>({
   name: { type: String, required: true },
   returnType: { type: String, required: true },
-  parameters: [{
-    name: String,
-    type: String
-  }]
+  parameters: [parameterSchema]
 }, { _id: false });
 
 const problemSchema = new Schema<IProblem>({
