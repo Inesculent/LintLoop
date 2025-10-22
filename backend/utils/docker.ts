@@ -1,5 +1,6 @@
 import Docker from 'dockerode';
 import { ExecutionResult } from '../types';
+import * as tar from 'tar-stream';
 
 const docker = new Docker();
 
@@ -17,67 +18,89 @@ async function executeCode({
   timeout = 5000
 }: ExecuteCodeParams): Promise<ExecutionResult> {
   const startTime = Date.now();
+  let container: Docker.Container | null = null;
 
   try {
-    let container;
     let command: string[];
     let image: string;
 
     if (language === 'python') {
       image = 'python:3.9-slim';
       command = ['python', '-c', code];
+      
+      // Create container
+      container = await docker.createContainer({
+        Image: image,
+        Cmd: command,
+        Tty: false,
+        AttachStdin: Boolean(input),
+        AttachStdout: true,
+        AttachStderr: true,
+        OpenStdin: Boolean(input),
+        StdinOnce: Boolean(input),
+        HostConfig: {
+          Memory: 256 * 1024 * 1024, // 256MB
+          NanoCpus: 1000000000, // 1 CPU
+          NetworkMode: 'none',
+          ReadonlyRootfs: true,
+          PidsLimit: 50,
+          AutoRemove: false
+        }
+      });
+
+      await container.start();
+
+      // If there's input, send it to stdin
+      if (input) {
+        const stream = await container.attach({
+          stream: true,
+          stdin: true,
+          stdout: true,
+          stderr: true
+        });
+        stream.write(input);
+        stream.end();
+      }
+
     } else if (language === 'java') {
       image = 'openjdk:11-slim';
-      // Java needs to compile first, then run
-      // We'll write to a temp file, compile, then execute
-      command = [
-        'sh',
-        '-c',
-        `echo '${code.replace(/'/g, "'\\''")}' > Main.java && javac Main.java && java -cp . Main`
-      ];
+      command = ['sh', '-c', 'javac Main.java && java -Xmx128m Main'];
+      
+      // Create container
+      container = await docker.createContainer({
+        Image: image,
+        Cmd: command,
+        WorkingDir: '/app',
+        Tty: false,
+        AttachStdout: true,
+        AttachStderr: true,
+        HostConfig: {
+          Memory: 256 * 1024 * 1024, // 256MB
+          NanoCpus: 1000000000, // 1 CPU
+          NetworkMode: 'none',
+          ReadonlyRootfs: false, // Java needs to write .class files
+          PidsLimit: 50,
+          AutoRemove: false
+        }
+      });
+
+      // Create tar archive with Main.java
+      const pack = tar.pack();
+      pack.entry({ name: 'Main.java' }, code);
+      pack.finalize();
+
+      // Put files into container
+      await container.putArchive(pack, { path: '/app' });
+      await container.start();
+
     } else {
       throw new Error(`Unsupported language: ${language}`);
-    }
-
-    // Create container
-    container = await docker.createContainer({
-      Image: image,
-      Cmd: command,
-      Tty: false,
-      AttachStdin: Boolean(input),
-      AttachStdout: true,
-      AttachStderr: true,
-      OpenStdin: Boolean(input),
-      StdinOnce: Boolean(input),
-      HostConfig: {
-        Memory: 256 * 1024 * 1024, // 256MB
-        NanoCpus: 1000000000, // 1 CPU
-        NetworkMode: 'none',
-        ReadonlyRootfs: false, // Java needs to write .class files
-        PidsLimit: 50,
-        AutoRemove: false // We'll remove manually
-      }
-    });
-
-    // Start container
-    await container.start();
-
-    // If there's input, send it to stdin
-    if (input) {
-      const stream = await container.attach({
-        stream: true,
-        stdin: true,
-        stdout: true,
-        stderr: true
-      });
-      stream.write(input);
-      stream.end();
     }
 
     // Set timeout to kill container
     const timeoutHandle = setTimeout(async () => {
       try {
-        await container.kill();
+        if (container) await container.kill();
       } catch (e) {
         // Container might already be stopped
       }
@@ -96,26 +119,22 @@ async function executeCode({
     // Parse Docker logs properly
     const output = logs.toString('utf8');
     
-    // Clean up null bytes and all control characters (including SOH, SOW, etc.)
+    // Clean up control characters
     const cleanOutput = output
-      .replace(/\0/g, '')                    // Remove null bytes
-      .replace(/\x00/g, '')                  // Remove null characters
-      .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
-      .replace(/\u0000-\u001F/g, '')         // Remove Unicode control characters
-      .replace(/null/g, '')                  // Remove literal "null" strings
-      .replace(/SOH|SOW/g, '')              // Remove SOH and SOW markers
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
       .trim();
     
     // Split stdout and stderr
     let stdout = '';
     let stderr = '';
     
-    // Simple parsing - look for actual content
     const lines = cleanOutput.split('\n');
     lines.forEach(line => {
-      // Skip empty lines and null characters
-      if (line.trim() && !line.includes('\0') && !line.includes('null')) {
-        if (line.includes('error') || line.includes('Error') || line.includes('Exception')) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        if (trimmed.toLowerCase().includes('error') || 
+            trimmed.toLowerCase().includes('exception') ||
+            trimmed.includes('.java:')) {
           stderr += line + '\n';
         } else {
           stdout += line + '\n';
@@ -124,7 +143,7 @@ async function executeCode({
     });
 
     // Clean up
-    await container.remove();
+    if (container) await container.remove();
 
     const executionTime = Date.now() - startTime;
 
@@ -137,6 +156,12 @@ async function executeCode({
     };
 
   } catch (error) {
+    if (container) {
+      try {
+        await container.remove({ force: true });
+      } catch {}
+    }
+    
     const executionTime = Date.now() - startTime;
     
     if (error instanceof Error) {
@@ -188,38 +213,29 @@ async function pullImages(): Promise<void> {
   }
 }
 
-module.exports = {
-  executeCode,
-  testDockerConnection,
-  pullImages
-};
-
-// Execute a Java Solution + Main pair
+// Execute a Java Solution + Main pair using tar-stream
 async function executeJavaSolution({
   solutionCode,
   mainCode,
   timeout = 5000,
-  memoryLimit = 256
+  memoryLimit = 512
 }: { solutionCode: string; mainCode: string; timeout?: number; memoryLimit?: number; }): Promise<ExecutionResult> {
   const startTime = Date.now();
+  let container: Docker.Container | null = null;
+  
   try {
     const image = 'openjdk:11-slim';
-    const safeSolution = solutionCode.replace(/'/g, "'\\''");
-    const safeMain = mainCode.replace(/'/g, "'\\''");
-    const command = [
-      'sh',
-      '-c',
-      `echo '${safeSolution}' > Solution.java && echo '${safeMain}' > Main.java && javac Main.java Solution.java && java -cp . Main`
-    ];
-
-    const container = await docker.createContainer({
+    
+    // Create container
+    container = await docker.createContainer({
       Image: image,
-      Cmd: command,
+      Cmd: ['sh', '-c', 'javac Solution.java Main.java && java -Xmx128m Main'],
+      WorkingDir: '/app',
       Tty: false,
       AttachStdout: true,
       AttachStderr: true,
       HostConfig: {
-        Memory: memoryLimit * 1024 * 1024, // Convert MB to bytes
+        Memory: memoryLimit * 1024 * 1024,
         NanoCpus: 1000000000,
         NetworkMode: 'none',
         ReadonlyRootfs: false,
@@ -228,32 +244,49 @@ async function executeJavaSolution({
       }
     });
 
+    // Create tar archive with files
+    const pack = tar.pack();
+    pack.entry({ name: 'Solution.java' }, solutionCode);
+    pack.entry({ name: 'Main.java' }, mainCode);
+    pack.finalize();
+
+    // Put files into container
+    await container.putArchive(pack, { path: '/app' });
+
+    // Start container
     await container.start();
 
+    // Set timeout
     const timeoutHandle = setTimeout(async () => {
-      try { await container.kill(); } catch {}
+      try {
+        if (container) await container.kill();
+      } catch {}
     }, timeout);
 
+    // Wait for completion
     const result = await container.wait();
     clearTimeout(timeoutHandle);
 
+    // Get logs
     const logs = await container.logs({ stdout: true, stderr: true });
     const output = logs.toString('utf8');
+    
+    // Clean output
     const cleanOutput = output
-      .replace(/\0/g, '')
-      .replace(/\x00/g, '')
-      .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-      .replace(/\u0000-\u001F/g, '')
-      .replace(/null/g, '')
-      .replace(/SOH|SOW/g, '')
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
       .trim();
 
+    // Split stdout and stderr
     let stdout = '';
     let stderr = '';
+    
     const lines = cleanOutput.split('\n');
     lines.forEach(line => {
-      if (line.trim() && !line.includes('\0') && !line.includes('null')) {
-        if (line.includes('error') || line.includes('Error') || line.includes('Exception')) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        if (trimmed.toLowerCase().includes('error') || 
+            trimmed.toLowerCase().includes('exception') ||
+            trimmed.includes('.java:')) {
           stderr += line + '\n';
         } else {
           stdout += line + '\n';
@@ -261,7 +294,8 @@ async function executeJavaSolution({
       }
     });
 
-    await container.remove();
+    // Clean up
+    if (container) await container.remove();
 
     const executionTime = Date.now() - startTime;
     return {
@@ -271,7 +305,14 @@ async function executeJavaSolution({
       executionTime,
       success: result.StatusCode === 0
     };
+
   } catch (error) {
+    if (container) {
+      try {
+        await container.remove({ force: true });
+      } catch {}
+    }
+    
     const executionTime = Date.now() - startTime;
     if (error instanceof Error) {
       return { output: '', stderr: error.message, exitCode: -1, executionTime, success: false };
@@ -280,4 +321,9 @@ async function executeJavaSolution({
   }
 }
 
-module.exports.executeJavaSolution = executeJavaSolution;
+module.exports = {
+  executeCode,
+  executeJavaSolution,
+  testDockerConnection,
+  pullImages
+};
