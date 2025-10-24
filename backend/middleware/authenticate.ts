@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
 // Extend Express Request type to include user info
 export interface AuthRequest extends Request {
+  userId?: string;  // MongoDB _id
   user?: {
     uid: number;
     email: string;
@@ -9,32 +11,45 @@ export interface AuthRequest extends Request {
   };
 }
 
+interface JwtPayload {
+  userId: string;
+}
+
 /**
  * Middleware to verify JWT token and authenticate user
- * TODO: Implement actual JWT verification
  */
-export const authenticate = async (_req: Request, _res: Response, next: NextFunction) => {
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // TODO: Extract token from Authorization header
-    // const token = req.headers.authorization?.split(' ')[1];
+    // Extract token from Authorization header
+    const token = req.headers.authorization?.split(' ')[1];
     
-    // TODO: Verify JWT token
-    // const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!token) {
+      res.status(401).json({ error: 'No token provided' });
+      return;
+    }
     
-    // TODO: Attach user info to request
-    // (req as AuthRequest).user = {
-    //   uid: decoded.uid,
-    //   email: decoded.email,
-    //   role: decoded.role
+    // Verify JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    
+    // Attach user ID to request
+    req.userId = decoded.userId;
+    
+    // If you want to attach full user info, fetch from database:
+    // const user = await User.findById(decoded.userId);
+    // if (!user) {
+    //   res.status(401).json({ error: 'User not found' });
+    //   return;
+    // }
+    // req.user = {
+    //   uid: user.uid,
+    //   email: user.email,
+    //   role: user.role || 'user'
     // };
-
-    // STUB: For now, allow all requests through
-    console.warn('Authentication disabled (stub mode)');
-    return next();
+    
+    next();
     
   } catch (error) {
-    // TODO: Handle authentication errors
-    return _res.status(401).json({ error: 'Unauthorized' });
+    console.error('Authentication error:', error);
+    res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
-
