@@ -30,8 +30,13 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Get the next uid by counting existing users
+    const userCount = await User.countDocuments();
+    const nextUid = userCount + 1;
+
     // Create new user
     const user: IUser = new User({
+      uid: nextUid,
       name,
       email,
       password: hashedPassword
