@@ -1,4 +1,4 @@
-﻿import express, { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -6,6 +6,10 @@ import executeRoutes = require('./routes/execute');
 import runSolutionRoutes = require('./routes/runSolution');
 import testRoutes = require('./routes/test');
 import problemRoutes = require('./routes/problems');
+import authRoutes from './routes/loginSignup';
+import { authenticate, AuthRequest } from './middleware/auth';
+import User from './models/User';
+
 const dockerUtils = require('./utils/docker');
 
 dotenv.config();
@@ -63,19 +67,33 @@ app.get('/', (_req: Request, res: Response) => {
   res.json({ 
     message: 'LinterLoop API',
     description: 'Code practice platform with automated style and performance grading',
-    endpoints: ['/health', '/api/problems', '/api/submissions', '/api/execute'],
+    endpoints: ['/health', '/api/auth/signup', '/api/auth/login', '/api/problems', '/api/submissions', '/api/execute'],
     supportedLanguages: ['python', 'java']
   });
 });
 
-// Routes
-app.use('/api/execute', executeRoutes);
-app.use('/api/run-solution', runSolutionRoutes);
-app.use('/api/test', testRoutes);
-app.use('/api/problems', problemRoutes);
+// Auth routes (public - no authentication required)
+app.use('/api/auth', authRoutes);
 
-// Start server
-// Start server
+// Protected routes (require authentication)
+app.use('/api/execute', authenticate, executeRoutes);
+app.use('/api/run-solution', authenticate, runSolutionRoutes);
+app.use('/api/test', authenticate, testRoutes);
+app.use('/api/problems', authenticate, problemRoutes);
+
+// Example: Protected profile endpoint
+app.get('/api/profile', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching profile' });
+  }
+});
+
 // Start server
 const PORT = parseInt(process.env.PORT || '5000', 10);
 app.listen(PORT, '0.0.0.0', () => {
