@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+﻿import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -7,8 +7,8 @@ import runSolutionRoutes = require('./routes/runSolution');
 import testRoutes = require('./routes/test');
 import problemRoutes = require('./routes/problems');
 import authRoutes from './routes/loginSignup';
-import { authenticate, AuthRequest } from './middleware/auth';
-import User from './models/User';
+import { authenticate, AuthRequest } from './middleware/authenticate';
+import User from './models/Users';
 
 const dockerUtils = require('./utils/docker');
 
