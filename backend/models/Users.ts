@@ -20,7 +20,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     maxlength: 255
   },
-
   email: { 
     type: String, 
     required: true,
@@ -29,20 +28,16 @@ const userSchema = new mongoose.Schema({
     lowercase: true,  // acts as a toLower
     trim: true        // clears the whitespace
   },
-
   password: { 
     type: String, 
     required: true, 
     minlength: 8,     
     maxlength: 255    
   },
-
   problems_solved: { 
     type: Number, 
     default: 0 
   }
-}, 
+});
 
 export default mongoose.model<IUser>("User", userSchema);
-
-});
