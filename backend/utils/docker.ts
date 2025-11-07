@@ -63,7 +63,7 @@ async function executeCode({
       }
 
     } else if (language === 'java') {
-      image = 'openjdk:11-slim';
+      image = 'eclipse-temurin:11-jre';
       command = ['sh', '-c', 'javac Main.java && java -Xmx128m Main'];
       
       // Create container
@@ -199,7 +199,7 @@ async function testDockerConnection(): Promise<boolean> {
 async function pullImages(): Promise<void> {
   const images = [
     'python:3.9-slim',
-    'openjdk:11-slim'
+    'eclipse-temurin:11-jre'
   ];
 
   for (const image of images) {
@@ -224,7 +224,7 @@ async function executeJavaSolution({
   let container: Docker.Container | null = null;
   
   try {
-    const image = 'openjdk:11-slim';
+    const image = 'eclipse-temurin:11-jre';
     
     // Create container
     container = await docker.createContainer({
