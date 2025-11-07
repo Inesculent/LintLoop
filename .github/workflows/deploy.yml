@@ -39,7 +39,7 @@ jobs:
           
           echo "Pulling Docker images for code execution..."
           docker pull python:3.9-slim
-          docker pull openjdk:11-slim
+          docker pull eclipse-temurin:11-jre
           
           echo "Restarting application with PM2..."
           pm2 restart linterloop-backend || pm2 start dist/server.js --name linterloop-backend
@@ -51,7 +51,7 @@ jobs:
           echo "----------------------------------------"
           pm2 status
           echo "----------------------------------------"
-          docker images | grep -E "python|openjdk"
+          docker images | grep -E "python|temurin"
           
     - name: Notify on success
       if: success()
