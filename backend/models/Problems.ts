@@ -42,6 +42,11 @@ export interface IProblem extends Document {
     java?: string;
     javascript?: string;
   };
+  solutionCode: {
+    python?: string;
+    java?: string;
+    javascript?: string;
+  };
   testHarness: {
     python?: string;
     java?: string;
@@ -132,6 +137,12 @@ const problemSchema = new Schema<IProblem>({
   },
   
   starterCode: {
+    python: String,
+    java: String,
+    javascript: String
+  },
+  
+  solutionCode: {
     python: String,
     java: String,
     javascript: String

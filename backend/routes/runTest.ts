@@ -5,10 +5,10 @@ const { generateTestHarness } = require('../utils/harnessGenerator');
 
 const router = express.Router();
 
-// Execute code with ALL test cases (for "Submit" button)
+// Execute code with CLIENT-PROVIDED test cases (for "Run" button)
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { problemId, solutionCode, language } = req.body;
+    const { problemId, solutionCode, language, testCases } = req.body;
 
     if (!problemId || !solutionCode) {
       return res.status(400).json({ error: 'Missing required fields: problemId and solutionCode' });
@@ -18,21 +18,24 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid or missing language. Use "python", "java", or "javascript"' });
     }
 
-    // Fetch problem from database
+    // Fetch problem from database (for metadata like function signatures)
     const problem = await Problem.findOne({ pid: problemId });
     if (!problem) {
       return res.status(404).json({ error: `Problem ${problemId} not found` });
     }
 
-    // Use ALL test cases for submission
-    const allTestCases = problem.testCases;
+    // Use test cases from client (frontend sends these - can be modified by user)
+    // If no test cases provided, fall back to visible test cases from DB
+    const testCasesToRun = testCases && testCases.length > 0 
+      ? testCases 
+      : problem.testCases.filter(tc => tc.isVisible);
     
-    if (allTestCases.length === 0) {
-      return res.status(400).json({ error: 'No test cases available for this problem' });
+    if (testCasesToRun.length === 0) {
+      return res.status(400).json({ error: 'No test cases provided' });
     }
 
-    // Generate dynamic test harness with all test cases
-    const testHarness = generateTestHarness(problem, language, allTestCases);
+    // Generate dynamic test harness with client-provided test cases
+    const testHarness = generateTestHarness(problem, language, testCasesToRun);
 
     // Use problem's language-specific limits (server-controlled)
     const timeout = problem.timeLimit?.[language as 'python' | 'java' | 'javascript'] 
