@@ -51,7 +51,7 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       message: 'User created successfully',
       token,
       user: {
@@ -63,7 +63,7 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
     });
   } catch (error) {
     const err = error as Error;
-    res.status(500).json({ message: 'Error creating user', error: err.message });
+    return res.status(500).json({ message: 'Error creating user', error: err.message });
   }
 });
 
@@ -91,7 +91,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
       { expiresIn: '7d' }
     );
 
-    res.json({
+    return res.json({
       message: 'Login successful',
       token,
       user: {
@@ -103,7 +103,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
     });
   } catch (error) {
     const err = error as Error;
-    res.status(500).json({ message: 'Error logging in', error: err.message });
+    return res.status(500).json({ message: 'Error logging in', error: err.message });
   }
 });
 
