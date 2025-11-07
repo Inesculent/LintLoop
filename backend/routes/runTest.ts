@@ -5,6 +5,16 @@ const { generateTestHarness } = require('../utils/harnessGenerator');
 
 const router = express.Router();
 
+function parseExecutionResult(result: any) {
+  if (result.success && result.output) {
+    try {
+      result.output = JSON.parse(result.output);
+    } catch (e) {
+      // Keep as string if not valid JSON (e.g., compilation errors)
+    }
+  }
+  return result;
+}
 // Execute code with CLIENT-PROVIDED test cases (for "Run" button)
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -60,7 +70,9 @@ router.post('/', async (req: Request, res: Response) => {
         memoryLimit
       });
 
-      return res.json(result);
+      const parsedResult = parseExecutionResult(result);
+
+      return res.json(parsedResult);
     }
     else if (language === 'python') {
       const result = await dockerUtils.executePythonSolution({
@@ -69,7 +81,10 @@ router.post('/', async (req: Request, res: Response) => {
         timeout,
         memoryLimit
       });
-      return res.json(result);
+      
+      const parsedResult = parseExecutionResult(result);
+
+      return res.json(parsedResult);
     }
 
     //For other languages, we can extend this later
