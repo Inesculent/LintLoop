@@ -116,31 +116,32 @@ async function executeCode({
       stderr: true
     });
 
-    // Parse Docker logs properly
-    const output = logs.toString('utf8');
-    
-    // Clean up control characters
-    const cleanOutput = output
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-      .trim();
-    
-    // Split stdout and stderr
+    // Properly demux Docker logs
     let stdout = '';
     let stderr = '';
     
-    const lines = cleanOutput.split('\n');
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed) {
-        if (trimmed.toLowerCase().includes('error') || 
-            trimmed.toLowerCase().includes('exception') ||
-            trimmed.includes('.java:')) {
-          stderr += line + '\n';
-        } else {
-          stdout += line + '\n';
-        }
+    // Docker logs have an 8-byte header for each frame
+    let offset = 0;
+    while (offset < logs.length) {
+      if (offset + 8 > logs.length) break;
+      
+      const header = logs.slice(offset, offset + 8);
+      const streamType = header[0];
+      const size = header.readUInt32BE(4);
+      
+      offset += 8;
+      if (offset + size > logs.length) break;
+      
+      const content = logs.slice(offset, offset + size).toString('utf8');
+      
+      if (streamType === 1) {
+        stdout += content;
+      } else if (streamType === 2) {
+        stderr += content;
       }
-    });
+      
+      offset += size;
+    }
 
     // Clean up
     if (container) await container.remove();
@@ -269,30 +270,36 @@ async function executeJavaSolution({
 
     // Get logs
     const logs = await container.logs({ stdout: true, stderr: true });
-    const output = logs.toString('utf8');
     
-    // Clean output
-    const cleanOutput = output
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-      .trim();
-
-    // Split stdout and stderr
+    // Properly demux Docker logs
     let stdout = '';
     let stderr = '';
     
-    const lines = cleanOutput.split('\n');
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed) {
-        if (trimmed.toLowerCase().includes('error') || 
-            trimmed.toLowerCase().includes('exception') ||
-            trimmed.includes('.java:')) {
-          stderr += line + '\n';
-        } else {
-          stdout += line + '\n';
-        }
+    // Docker logs have an 8-byte header for each frame
+    // We need to parse this properly
+    let offset = 0;
+    while (offset < logs.length) {
+      // Read 8-byte header
+      if (offset + 8 > logs.length) break;
+      
+      const header = logs.slice(offset, offset + 8);
+      const streamType = header[0]; // 0=stdin, 1=stdout, 2=stderr
+      const size = header.readUInt32BE(4);
+      
+      offset += 8;
+      
+      if (offset + size > logs.length) break;
+      
+      const content = logs.slice(offset, offset + size).toString('utf8');
+      
+      if (streamType === 1) {
+        stdout += content;
+      } else if (streamType === 2) {
+        stderr += content;
       }
-    });
+      
+      offset += size;
+    }
 
     // Clean up
     if (container) await container.remove();
@@ -370,30 +377,33 @@ async function executePythonSolution({
 
     // Get logs
     const logs = await container.logs({ stdout: true, stderr: true });
-    const output = logs.toString('utf8');
     
-    // Clean output
-    const cleanOutput = output
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-      .trim();
-
-    // Split stdout and stderr
+    // Properly demux Docker logs
     let stdout = '';
     let stderr = '';
     
-    const lines = cleanOutput.split('\n');
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed) {
-        if (trimmed.toLowerCase().includes('error') || 
-            trimmed.toLowerCase().includes('traceback') ||
-            trimmed.toLowerCase().includes('exception')) {
-          stderr += line + '\n';
-        } else {
-          stdout += line + '\n';
-        }
+    // Docker logs have an 8-byte header for each frame
+    let offset = 0;
+    while (offset < logs.length) {
+      if (offset + 8 > logs.length) break;
+      
+      const header = logs.slice(offset, offset + 8);
+      const streamType = header[0];
+      const size = header.readUInt32BE(4);
+      
+      offset += 8;
+      if (offset + size > logs.length) break;
+      
+      const content = logs.slice(offset, offset + size).toString('utf8');
+      
+      if (streamType === 1) {
+        stdout += content;
+      } else if (streamType === 2) {
+        stderr += content;
       }
-    });
+      
+      offset += size;
+    }
 
     // Clean up
     if (container) await container.remove();
