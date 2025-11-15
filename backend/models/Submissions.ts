@@ -78,9 +78,24 @@ const submissionSchema = new mongoose.Schema({
     default: Date.now 
   },
   
+  // Overall score (0-100)
   score: {
     type: Number,
     default: 0
+  },
+  
+  // Detailed score breakdown
+  scoreBreakdown: {
+    correctness: { type: Number, default: 0 },  // 0-100
+    performance: { type: Number, default: 0 },  // 0-100
+    style: { type: Number, default: 0 },        // 0-100
+    readability: { type: Number, default: 0 }   // 0-100
+  },
+  
+  // Feedback from grading system
+  feedback: {
+    type: [String],
+    default: []
   }
 });
 
