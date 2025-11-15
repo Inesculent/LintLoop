@@ -9,6 +9,7 @@ interface TestHarnessOutput {
   results: Array<{
     testNumber: number;
     passed: boolean;
+    input?: string;
     actual?: string;
     expected?: string;
     executionTime: number;
@@ -51,7 +52,7 @@ export async function scoreSubmission(
   // Map test results to match TestResult interface
   const mappedTestResults = testResults.results.map(r => ({
     passed: r.passed,
-    input: r.actual || '',  // Use actual as fallback since harness doesn't include original input
+    input: r.input || '',
     expected: r.expected || '',
     actual: r.actual || '',
     executionTime: r.executionTime
@@ -59,7 +60,7 @@ export async function scoreSubmission(
   
   // If correctness isn't 100%, DENY submission (return 0)
   if (correctnessScore < 100) {
-    feedback.push('❌ SUBMISSION DENIED: Must pass all test cases first');
+    feedback.push('SUBMISSION DENIED: Must pass all test cases first');
     
     return {
       totalScore: 0,
@@ -76,7 +77,7 @@ export async function scoreSubmission(
   }
   
   // Code passes all tests! Now grade performance, style, and readability
-  feedback.push('✅ All test cases passed! Grading code quality...');
+  feedback.push('All test cases passed! Grading code quality...');
   
   // Step 3: Calculate performance score (20%)
   const performanceScore = calculatePerformanceScore(testResults, problemTimeLimit, feedback);
@@ -143,7 +144,7 @@ function parseTestResults(executionResult: ExecutionResult): TestHarnessOutput {
  */
 function calculateCorrectnessScore(testResults: TestHarnessOutput, feedback: string[]): number {
   if (testResults.totalTests === 0) {
-    feedback.push('❌ No test cases were executed');
+    feedback.push('No test cases were executed');
     return 0;
   }
   
@@ -153,7 +154,7 @@ function calculateCorrectnessScore(testResults: TestHarnessOutput, feedback: str
     // Don't add feedback here - will be added in main function
     return 100;
   } else {
-    feedback.push(`❌ Failed ${testResults.totalTests - testResults.passedTests}/${testResults.totalTests} test cases`);
+    feedback.push(`Failed ${testResults.totalTests - testResults.passedTests}/${testResults.totalTests} test cases`);
     return score;
   }
 }
@@ -167,7 +168,7 @@ function calculatePerformanceScore(
   feedback: string[]
 ): number {
   if (testResults.results.length === 0) {
-    feedback.push('⚠️ No performance data available');
+    feedback.push('No performance data available');
     return 50; // Neutral score
   }
   
@@ -188,23 +189,23 @@ function calculatePerformanceScore(
   
   if (ratio < 0.10) {
     score = 100;
-    feedback.push(`⚡ Excellent performance! Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
+    feedback.push(`Excellent performance! Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
   } else if (ratio < 0.25) {
     score = 90;
-    feedback.push(`✅ Great performance! Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
+    feedback.push(`Great performance! Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
   } else if (ratio < 0.50) {
     score = 80;
-    feedback.push(`👍 Good performance! Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
+    feedback.push(`Good performance! Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
   } else if (ratio < 0.75) {
     score = 70;
-    feedback.push(`⚠️ Acceptable performance. Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
+    feedback.push(`Acceptable performance. Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
   } else if (ratio <= 1.0) {
     score = 60;
-    feedback.push(`⚠️ Performance near limit. Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
+    feedback.push(`Performance near limit. Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
   } else {
     // Over time limit, scale down
     score = Math.max(0, 60 - (ratio - 1) * 30);
-    feedback.push(`❌ Performance exceeded limit. Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
+    feedback.push(`Performance exceeded limit. Avg time: ${avgTime.toFixed(2)}ms (${(ratio * 100).toFixed(1)}% of limit)`);
   }
   
   return score;
@@ -232,24 +233,12 @@ async function calculateStyleScore(
     
     // Convert 0-10 linter score to 0-100
     const score = linterResult.score * 10;
-    
-    if (score >= 90) {
-      feedback.push(`✨ Excellent code style! (${linterResult.issues} issues)`);
-    } else if (score >= 70) {
-      feedback.push(`👍 Good code style. (${linterResult.issues} issues)`);
-    } else if (score >= 50) {
-      feedback.push(`⚠️ Code style needs improvement. (${linterResult.issues} issues)`);
-    } else {
-      feedback.push(`❌ Poor code style. (${linterResult.issues} issues)`);
-    }
-    
-    if (linterResult.details) {
-      feedback.push(`Style details: ${linterResult.details}`);
-    }
-    
+    feedback.push(`(${linterResult.issues} issues)`);
+    feedback.push(`Style details: ${linterResult.details}`)
+ 
     return score;
   } catch (error) {
-    feedback.push(`⚠️ Could not run style checker: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    feedback.push(`Could not run style checker: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return 50; // Neutral score on error
   }
 }
@@ -537,19 +526,18 @@ function calculateReadabilityScore(
   score = Math.max(0, Math.min(100, score));
   
   if (score >= 80) {
-    feedback.push(`📖 Readable code! ${issues.filter(i => !i.includes('No')).slice(0, 2).join(', ') || 'Well structured'}`);
+    feedback.push(`Readable code! ${issues.filter(i => !i.includes('No')).slice(0, 2).join(', ') || 'Well structured'}`);
   } else if (score >= 60) {
-    feedback.push(`📚 Decent readability. ${issues.filter(i => i.includes('too') || i.includes('Deep') || i.includes('exceed')).slice(0, 2).join(', ')}`);
+    feedback.push(`Decent readability. ${issues.filter(i => i.includes('too') || i.includes('Deep') || i.includes('exceed')).slice(0, 2).join(', ')}`);
   } else {
-    feedback.push(`⚠️ Code readability needs work. ${issues.filter(i => i.includes('too') || i.includes('Deep') || i.includes('No')).slice(0, 2).join(', ')}`);
+    feedback.push(`Poor readability. ${issues.filter(i => i.includes('too') || i.includes('Deep') || i.includes('No')).slice(0, 2).join(', ')}`);
   }
   
   return score;
 }
 
-/**
- * Calculate maximum nesting depth
- */
+
+// Max nesting depth
 function calculateMaxNesting(lines: string[]): number {
   let maxDepth = 0;
   let currentDepth = 0;

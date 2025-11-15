@@ -79,6 +79,7 @@ ${outputArray}
                 System.out.println("    {");
                 System.out.println("      \\"testNumber\\": " + i + ",");
                 System.out.println("      \\"passed\\": " + isPassed + ",");
+                System.out.println("      \\"input\\": \\"" + ${generateJavaInputString(functionSig)} + "\\",");
                 System.out.println("      \\"actual\\": \\"" + ${generateJavaToString(
                   functionSig.returnType ?? "",
                   "result"
@@ -173,6 +174,16 @@ function generateJavaToString(returnType: string, varName: string): string {
   return returnType === "int[]" ? `Arrays.toString(${varName})` : varName;
 }
 
+function generateJavaInputString(functionSig: FunctionSignature): string {
+  const params = functionSig.parameters.map(p => {
+    if (p.type === "int[]") {
+      return `Arrays.toString(${p.name}Inputs[i])`;
+    }
+    return `${p.name}Inputs[i]`;
+  });
+  return params.join(' + ", " + ');
+}
+
 /* ---------------------------- PYTHON HARNESS ---------------------------- */
 
 function generatePythonHarness(problem: ProblemDefinition, testCases: TestCase[]): string {
@@ -211,6 +222,7 @@ def run_tests():
             results.append({
                 "testNumber": i,
                 "passed": is_passed,
+                "input": str(test_input),
                 "actual": str(result),
                 "expected": str(expected),
                 "executionTime": (end_time - start_time) * 1000
