@@ -321,9 +321,111 @@ async function executeJavaSolution({
   }
 }
 
+// Execute a Python Solution + test harness using tar-stream
+async function executePythonSolution({
+  solutionCode,
+  testHarness,
+  timeout = 5000,
+  memoryLimit = 256
+}: { solutionCode: string; testHarness: string; timeout?: number; memoryLimit?: number; }): Promise<ExecutionResult> {
+  const startTime = Date.now();
+  let container: Docker.Container | null = null;
+  
+  try {
+    const image = 'python:3.9-slim';
+    
+    // Combine solution code with test harness
+    const fullCode = `${solutionCode}\n\n${testHarness}`;
+    
+    // Create container
+    container = await docker.createContainer({
+      Image: image,
+      Cmd: ['python', '-c', fullCode],
+      Tty: false,
+      AttachStdout: true,
+      AttachStderr: true,
+      HostConfig: {
+        Memory: memoryLimit * 1024 * 1024,
+        NanoCpus: 1000000000,
+        NetworkMode: 'none',
+        ReadonlyRootfs: true,
+        PidsLimit: 50,
+        AutoRemove: false
+      }
+    });
+
+    // Start container
+    await container.start();
+
+    // Set timeout
+    const timeoutHandle = setTimeout(async () => {
+      try {
+        if (container) await container.kill();
+      } catch {}
+    }, timeout);
+
+    // Wait for completion
+    const result = await container.wait();
+    clearTimeout(timeoutHandle);
+
+    // Get logs
+    const logs = await container.logs({ stdout: true, stderr: true });
+    const output = logs.toString('utf8');
+    
+    // Clean output
+    const cleanOutput = output
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+      .trim();
+
+    // Split stdout and stderr
+    let stdout = '';
+    let stderr = '';
+    
+    const lines = cleanOutput.split('\n');
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed) {
+        if (trimmed.toLowerCase().includes('error') || 
+            trimmed.toLowerCase().includes('traceback') ||
+            trimmed.toLowerCase().includes('exception')) {
+          stderr += line + '\n';
+        } else {
+          stdout += line + '\n';
+        }
+      }
+    });
+
+    // Clean up
+    if (container) await container.remove();
+
+    const executionTime = Date.now() - startTime;
+    return {
+      output: stdout.trim(),
+      stderr: stderr.trim(),
+      exitCode: result.StatusCode,
+      executionTime,
+      success: result.StatusCode === 0
+    };
+
+  } catch (error) {
+    if (container) {
+      try {
+        await container.remove({ force: true });
+      } catch {}
+    }
+    
+    const executionTime = Date.now() - startTime;
+    if (error instanceof Error) {
+      return { output: '', stderr: error.message, exitCode: -1, executionTime, success: false };
+    }
+    return { output: '', stderr: 'Unknown error occurred', exitCode: -1, executionTime, success: false };
+  }
+}
+
 module.exports = {
   executeCode,
   executeJavaSolution,
+  executePythonSolution,
   testDockerConnection,
   pullImages
 };
