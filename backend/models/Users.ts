@@ -6,6 +6,10 @@ export interface IUser extends Document {
   email: string;
   password: string;
   problems_solved: number;
+  role: 'admin' | 'user';
+  twoFactorEnabled: boolean;
+  twoFactorCode?: string;
+  twoFactorCodeExpiry?: Date;
 }
 
 const userSchema = new mongoose.Schema({
@@ -42,6 +46,19 @@ const userSchema = new mongoose.Schema({
   problems_solved: { 
     type: Number, 
     default: 0 
+  }, 
+  
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  twoFactorCode: {
+    type: String,
+    select: false  // Don't return this in queries by default
+  },
+  twoFactorCodeExpiry: {
+    type: Date,
+    select: false  // Don't return this in queries by default
   }
 });
 
