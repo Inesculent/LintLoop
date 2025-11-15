@@ -46,7 +46,7 @@ export interface ScoreBreakdown {
 }
 
 export interface ExecutionResult {
-  output: string;
+  output: string | any;  // Can be string or parsed JSON object
   stderr: string;
   exitCode: number;
   executionTime: number;

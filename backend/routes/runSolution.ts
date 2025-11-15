@@ -66,6 +66,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         memoryLimit
       });
 
+      // Parse JSON output if execution was successful
+      if (executionResult.success && executionResult.output) {
+        try {
+          executionResult.output = JSON.parse(executionResult.output);
+        } catch (e) {
+          // Keep as string if not valid JSON
+        }
+      }
+
       // Score the submission using linters and grading criteria
       const gradingResult = await scoreSubmission(
         executionResult,
@@ -98,6 +107,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         timeout,
         memoryLimit
       });
+
+      // Parse JSON output if execution was successful
+      if (executionResult.success && executionResult.output) {
+        try {
+          executionResult.output = JSON.parse(executionResult.output);
+        } catch (e) {
+          // Keep as string if not valid JSON
+        }
+      }
 
       // Score the submission using linters and grading criteria
       const gradingResult = await scoreSubmission(
@@ -160,7 +178,12 @@ async function saveSubmission({
   // Parse test results from execution output
   let parsedOutput: any = {};
   try {
-    parsedOutput = JSON.parse(executionResult.output);
+    // If output is already an object, use it directly
+    if (typeof executionResult.output === 'object') {
+      parsedOutput = executionResult.output;
+    } else {
+      parsedOutput = JSON.parse(executionResult.output);
+    }
   } catch (e) {
     // If parsing fails, use empty object
   }

@@ -124,7 +124,12 @@ function parseTestResults(executionResult: ExecutionResult): TestHarnessOutput {
   }
   
   try {
-    // Try to parse JSON output from test harness
+    // If output is already an object, use it directly
+    if (typeof executionResult.output === 'object') {
+      return executionResult.output as TestHarnessOutput;
+    }
+    
+    // Otherwise try to parse JSON output from test harness
     const parsed = JSON.parse(executionResult.output);
     return parsed as TestHarnessOutput;
   } catch (error) {
