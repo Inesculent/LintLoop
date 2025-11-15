@@ -109,7 +109,17 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return res.json({
         execution: executionResult,
         grading: gradingResult,
-        submissionId: submissionDoc._id
+        submission: {
+          id: submissionDoc._id,
+          status: submissionDoc.status,
+          score: submissionDoc.score,
+          scoreBreakdown: submissionDoc.scoreBreakdown,
+          passedTests: submissionDoc.passedTests,
+          totalTests: submissionDoc.totalTests,
+          executionTime: submissionDoc.executionTime,
+          feedback: submissionDoc.feedback,
+          timestamp: submissionDoc.timestamp
+        }
       });
     }
     else if (language === 'python') {
@@ -163,7 +173,17 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return res.json({
         execution: executionResult,
         grading: gradingResult,
-        submissionId: submissionDoc._id
+        submission: {
+          id: submissionDoc._id,
+          status: submissionDoc.status,
+          score: submissionDoc.score,
+          scoreBreakdown: submissionDoc.scoreBreakdown,
+          passedTests: submissionDoc.passedTests,
+          totalTests: submissionDoc.totalTests,
+          executionTime: submissionDoc.executionTime,
+          feedback: submissionDoc.feedback,
+          timestamp: submissionDoc.timestamp
+        }
       });
     }
 
