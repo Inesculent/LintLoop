@@ -67,16 +67,23 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
 
       // Parse JSON output if execution was successful
-      if (executionResult.success && executionResult.output && typeof executionResult.output === 'string') {
-        try {
-          executionResult = {
-            ...executionResult,
-            output: JSON.parse(executionResult.output)
-          };
-          console.log('✅ Parsed Java execution output');
-        } catch (e) {
-          console.error('❌ Failed to parse Java execution output:', e);
-          // Keep as string if not valid JSON
+      console.log('Java output type:', typeof executionResult.output);
+      console.log('Java output is string?', typeof executionResult.output === 'string');
+      if (executionResult.success && executionResult.output) {
+        if (typeof executionResult.output === 'string') {
+          try {
+            const parsed = JSON.parse(executionResult.output);
+            executionResult = {
+              ...executionResult,
+              output: parsed
+            };
+            console.log('✅ Parsed Java execution output, type now:', typeof executionResult.output);
+          } catch (e) {
+            console.error('❌ Failed to parse Java execution output:', e);
+            // Keep as string if not valid JSON
+          }
+        } else {
+          console.log('ℹ️ Java output already parsed');
         }
       }
 
@@ -114,16 +121,23 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
 
       // Parse JSON output if execution was successful
-      if (executionResult.success && executionResult.output && typeof executionResult.output === 'string') {
-        try {
-          executionResult = {
-            ...executionResult,
-            output: JSON.parse(executionResult.output)
-          };
-          console.log('✅ Parsed Python execution output');
-        } catch (e) {
-          console.error('❌ Failed to parse Python execution output:', e);
-          // Keep as string if not valid JSON
+      console.log('Python output type:', typeof executionResult.output);
+      console.log('Python output is string?', typeof executionResult.output === 'string');
+      if (executionResult.success && executionResult.output) {
+        if (typeof executionResult.output === 'string') {
+          try {
+            const parsed = JSON.parse(executionResult.output);
+            executionResult = {
+              ...executionResult,
+              output: parsed
+            };
+            console.log('✅ Parsed Python execution output, type now:', typeof executionResult.output);
+          } catch (e) {
+            console.error('❌ Failed to parse Python execution output:', e);
+            // Keep as string if not valid JSON
+          }
+        } else {
+          console.log('ℹ️ Python output already parsed');
         }
       }
 
