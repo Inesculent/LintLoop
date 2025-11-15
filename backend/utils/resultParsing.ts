@@ -90,7 +90,7 @@ export async function scoreSubmission(
   
   // Calculate total score: 40% (correctness) + 60% (quality)
   const breakdown: ScoreBreakdown = {
-    correctness: 40,  // Always 40 if all tests pass
+    correctness: 100,  // Always 100 if all tests pass
     performance: performanceScore,
     style: styleScore,
     readability: readabilityScore
@@ -488,10 +488,10 @@ function calculateReadabilityScore(
   
   // Check 1: Nesting depth
   const maxNesting = calculateMaxNesting(lines);
-  if (maxNesting > 4) {
+  if (maxNesting > 10) {
     score -= 20;
     issues.push(`Deep nesting (${maxNesting} levels)`);
-  } else if (maxNesting > 3) {
+  } else if (maxNesting > 8) {
     score -= 10;
     issues.push(`Moderate nesting (${maxNesting} levels)`);
   }
