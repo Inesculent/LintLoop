@@ -59,7 +59,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ error: 'solutionCode must define class Solution' });
       }
 
-      const executionResult = await dockerUtils.executeJavaSolution({
+      let executionResult = await dockerUtils.executeJavaSolution({
         solutionCode,
         mainCode: testHarness,
         timeout,
@@ -67,10 +67,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
 
       // Parse JSON output if execution was successful
-      if (executionResult.success && executionResult.output) {
+      if (executionResult.success && executionResult.output && typeof executionResult.output === 'string') {
         try {
-          executionResult.output = JSON.parse(executionResult.output);
+          executionResult = {
+            ...executionResult,
+            output: JSON.parse(executionResult.output)
+          };
+          console.log('✅ Parsed Java execution output');
         } catch (e) {
+          console.error('❌ Failed to parse Java execution output:', e);
           // Keep as string if not valid JSON
         }
       }
@@ -101,7 +106,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
     }
     else if (language === 'python') {
-      const executionResult = await dockerUtils.executePythonSolution({
+      let executionResult = await dockerUtils.executePythonSolution({
         solutionCode,
         testHarness,
         timeout,
@@ -109,10 +114,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
 
       // Parse JSON output if execution was successful
-      if (executionResult.success && executionResult.output) {
+      if (executionResult.success && executionResult.output && typeof executionResult.output === 'string') {
         try {
-          executionResult.output = JSON.parse(executionResult.output);
+          executionResult = {
+            ...executionResult,
+            output: JSON.parse(executionResult.output)
+          };
+          console.log('✅ Parsed Python execution output');
         } catch (e) {
+          console.error('❌ Failed to parse Python execution output:', e);
           // Keep as string if not valid JSON
         }
       }
