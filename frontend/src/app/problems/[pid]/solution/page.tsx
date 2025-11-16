@@ -19,7 +19,7 @@ export default function ProblemSolutionPage() {
   const [code, setCode] = useState('');
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [customTestCases, setCustomTestCases] = useState<Array<{ input: any; output: any }>>([]);
+  const [customTestCases, setCustomTestCases] = useState<Array<{ input: any }>>([]);
   const [showTestCaseInput, setShowTestCaseInput] = useState(false);
 
   useEffect(() => {
@@ -312,13 +312,13 @@ export default function ProblemSolutionPage() {
                       {showTestCaseInput && (
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           <p className="text-sm text-gray-600 mb-2">
-                            Add custom test cases to test your code. Leave empty to use default visible test cases.
+                            Add custom test inputs to test your code. Your code's output will be shown in the results.
                           </p>
                           
                           {customTestCases.map((testCase, idx) => (
                             <div key={idx} className="flex gap-2 items-start bg-white p-3 rounded border">
                               <div className="flex-1">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Input (JSON)</label>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Test Input (JSON format)</label>
                                 <input
                                   type="text"
                                   value={typeof testCase.input === 'string' ? testCase.input : JSON.stringify(testCase.input)}
@@ -331,25 +331,7 @@ export default function ProblemSolutionPage() {
                                     }
                                     setCustomTestCases(newCases);
                                   }}
-                                  placeholder='[1, 2, 3] or "hello"'
-                                  className="w-full text-sm border-gray-300 rounded px-2 py-1 font-mono"
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Expected Output (JSON)</label>
-                                <input
-                                  type="text"
-                                  value={typeof testCase.output === 'string' ? testCase.output : JSON.stringify(testCase.output)}
-                                  onChange={(e) => {
-                                    const newCases = [...customTestCases];
-                                    try {
-                                      newCases[idx].output = JSON.parse(e.target.value);
-                                    } catch {
-                                      newCases[idx].output = e.target.value;
-                                    }
-                                    setCustomTestCases(newCases);
-                                  }}
-                                  placeholder='6 or "olleh"'
+                                  placeholder='Example: [1, 2, 3] or "hello" or {"key": "value"}'
                                   className="w-full text-sm border-gray-300 rounded px-2 py-1 font-mono"
                                 />
                               </div>
@@ -358,7 +340,7 @@ export default function ProblemSolutionPage() {
                                   const newCases = customTestCases.filter((_, i) => i !== idx);
                                   setCustomTestCases(newCases);
                                 }}
-                                className="mt-5 text-red-600 hover:text-red-800 text-sm"
+                                className="mt-5 text-red-600 hover:text-red-800 text-sm font-bold px-2"
                               >
                                 ✕
                               </button>
@@ -367,10 +349,10 @@ export default function ProblemSolutionPage() {
                           
                           <div className="flex gap-2">
                             <button
-                              onClick={() => setCustomTestCases([...customTestCases, { input: '', output: '' }])}
+                              onClick={() => setCustomTestCases([...customTestCases, { input: '' }])}
                               className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                             >
-                              + Add Test Case
+                              + Add Test Input
                             </button>
                             {customTestCases.length > 0 && (
                               <button
@@ -384,7 +366,7 @@ export default function ProblemSolutionPage() {
                           
                           {customTestCases.length > 0 && (
                             <p className="text-xs text-green-600 mt-2">
-                              ✓ {customTestCases.length} custom test case(s) will be used when you click "Run Code"
+                              ✓ Will run your code with {customTestCases.length} custom input(s)
                             </p>
                           )}
                         </div>
@@ -403,7 +385,7 @@ export default function ProblemSolutionPage() {
                       onChange={(value) => setCode(value || '')}
                       theme="vs-dark"
                       options={{
-                        minimap: { enabled: true },
+                        minimap: { enabled: false },
                         fontSize: 14,
                         lineNumbers: 'on',
                         scrollBeyondLastLine: false,
