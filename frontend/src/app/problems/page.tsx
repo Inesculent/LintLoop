@@ -6,7 +6,7 @@ import { Navigation } from '../components/Navigation';
 import { LoadingPage } from '../components/LoadingSpinner';
 import { Problem as ApiProblem, Difficulty } from '../../types/api';
 
-interface ProblemListItem extends Pick<ApiProblem, 'pid' | 'title' | 'difficulty' | 'tags'> {
+interface ProblemListItem extends Pick<ApiProblem, 'pid' | 'title' | 'problemStatement' | 'difficulty' | 'tags'> {
   solved?: boolean;
   successRate?: number;
 }
@@ -63,7 +63,7 @@ export default function ProblemsPage() {
         }, {});
 
         // Transform the problems data
-        const problems = problemsData.map((problem: Problem) => {
+        const problems: ProblemListItem[] = problemsData.map((problem: ApiProblem) => {
           const stats = problemSubmissions[problem.pid] || { total: 0, accepted: 0 };
           return {
             ...problem,
