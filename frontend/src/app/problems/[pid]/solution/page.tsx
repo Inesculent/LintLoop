@@ -298,13 +298,26 @@ export default function ProblemSolutionPage() {
 
                 {/* Right Panel: Code Editor */}
                 <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="p-4">
-                    <textarea
+                  <div className="h-full">
+                    <Editor
+                      height="65vh"
+                      language={language}
                       value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      className="w-full font-mono text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      style={{ height: '65vh', minHeight: '500px' }}
-                      spellCheck="false"
+                      onChange={(value) => setCode(value || '')}
+                      theme="vs-dark"
+                      options={{
+                        minimap: { enabled: true },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        tabSize: 4,
+                        wordWrap: 'on',
+                        bracketPairColorization: { enabled: true },
+                        suggest: {
+                          snippetsPreventQuickSuggestions: false
+                        }
+                      }}
                     />
                   </div>
                 </div>
