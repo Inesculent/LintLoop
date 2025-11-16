@@ -32,8 +32,24 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
           
-          echo "Installing backend dependencies..."
+          echo "Setting up backend environment..."
           cd backend
+          
+          # Create .env file if it doesn't exist
+          if [ ! -f ".env" ]; then
+            echo "Creating backend .env file..."
+            cat > .env << EOF
+          PORT=5000
+          NODE_ENV=production
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          DOCKER_ENABLED=true
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+          EOF
+          fi
+          
+          echo "Installing backend dependencies..."
           rm -rf node_modules
           npm ci
           
@@ -50,6 +66,13 @@ jobs:
             echo "Deploying Frontend (Next.js)..."
             echo "========================================="
             cd frontend
+            
+            # Create .env.production file
+            echo "Creating frontend .env.production file..."
+            cat > .env.production << EOF
+          NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          EOF
+            
             rm -rf node_modules .next
             npm ci
             
