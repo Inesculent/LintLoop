@@ -21,7 +21,7 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? 'https://lintloop.com' // replace with your production domain
+    ? ['https://www.inesculent.dev', 'https://inesculent.dev']
     : 'http://localhost:3000',
   credentials: true
 }));
