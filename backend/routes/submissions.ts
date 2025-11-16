@@ -39,6 +39,19 @@ router.get('/user/:uid/problem/:pid', authenticate, async (req: Request, res: Re
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Security check: Users can only view their own submissions (unless admin)
+    const authRequest = req as AuthRequest;
+    const currentUser = await User.findById(authRequest.userId);
+    
+    if (!currentUser) {
+      return res.status(401).json({ error: 'Authentication error' });
+    }
+    
+    // Check if user is trying to access their own data OR is an admin
+    if (currentUser.uid !== uid && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: You can only view your own submissions' });
+    }
+
     // Find problem by pid
     const Problem = (await import('../models/Problems')).default;
     const problem = await Problem.findOne({ pid });
