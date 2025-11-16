@@ -21,7 +21,6 @@ export default function ProblemSolutionPage() {
   const [error, setError] = useState<string | null>(null);
   const [customTestCases, setCustomTestCases] = useState<Array<{ input: any; output: any }>>([]);
   const [showTestCaseInput, setShowTestCaseInput] = useState(false);
-  const [editorLoading, setEditorLoading] = useState(true);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -231,8 +230,8 @@ export default function ProblemSolutionPage() {
               {/* Split View: Problem Description (Left) + Code Editor (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Left Panel: Problem Description */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="p-6 space-y-6 overflow-y-auto" style={{ maxHeight: '70vh' }}>
+                <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col" style={{ maxHeight: '70vh' }}>
+                  <div className="p-6 space-y-6 overflow-y-auto flex-1">
                     {/* Problem Statement */}
                     <div>
                       <h2 className="text-lg font-semibold mb-2">Problem Description</h2>
@@ -396,20 +395,13 @@ export default function ProblemSolutionPage() {
 
                 {/* Right Panel: Code Editor */}
                 <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="relative" style={{ height: '65vh', minHeight: '500px' }}>
-                    {editorLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                        <div className="text-white">Loading editor...</div>
-                      </div>
-                    )}
+                  <div style={{ height: '65vh', minHeight: '500px' }}>
                     <Editor
                       height="100%"
                       language={language}
                       value={code}
                       onChange={(value) => setCode(value || '')}
-                      onMount={() => setEditorLoading(false)}
                       theme="vs-dark"
-                      loading={<div className="flex items-center justify-center h-full bg-gray-900 text-white">Loading editor...</div>}
                       options={{
                         minimap: { enabled: true },
                         fontSize: 14,
@@ -436,56 +428,121 @@ export default function ProblemSolutionPage() {
                     <h2 className="text-lg font-semibold">
                       Status: {result.status}
                     </h2>
-                    <div className="text-sm">
-                      Passed: {result.passedTests}/{result.totalTests} tests
+                    <div className="text-sm font-medium">
+                      {result.passedTests}/{result.totalTests} tests passed
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Execution Time:</span>{' '}
-                      {result.executionTime}ms
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                    <div className="bg-white bg-opacity-30 p-3 rounded">
+                      <span className="block text-xs opacity-80">Execution Time</span>
+                      <span className="font-bold text-lg">{result.executionTime}ms</span>
                     </div>
                     {result.memoryUsed && (
-                      <div>
-                        <span className="font-medium">Memory Used:</span>{' '}
-                        {result.memoryUsed}MB
+                      <div className="bg-white bg-opacity-30 p-3 rounded">
+                        <span className="block text-xs opacity-80">Memory Used</span>
+                        <span className="font-bold text-lg">{result.memoryUsed}MB</span>
+                      </div>
+                    )}
+                    {result.score !== undefined && (
+                      <div className="bg-white bg-opacity-30 p-3 rounded">
+                        <span className="block text-xs opacity-80">Score</span>
+                        <span className="font-bold text-lg">{result.score}%</span>
                       </div>
                     )}
                   </div>
 
+                  {/* Score Breakdown */}
+                  {result.scoreBreakdown && (
+                    <div className="mt-4 p-4 bg-white bg-opacity-20 rounded">
+                      <h3 className="font-semibold mb-3">Score Breakdown</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                          <span className="block mb-1">Correctness</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-white bg-opacity-30 rounded-full h-2">
+                              <div className="bg-green-400 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.correctness}%` }}></div>
+                            </div>
+                            <span className="font-medium">{result.scoreBreakdown.correctness}%</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="block mb-1">Performance</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-white bg-opacity-30 rounded-full h-2">
+                              <div className="bg-blue-400 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.performance}%` }}></div>
+                            </div>
+                            <span className="font-medium">{result.scoreBreakdown.performance}%</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="block mb-1">Style</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-white bg-opacity-30 rounded-full h-2">
+                              <div className="bg-purple-400 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.style}%` }}></div>
+                            </div>
+                            <span className="font-medium">{result.scoreBreakdown.style}%</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="block mb-1">Readability</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-white bg-opacity-30 rounded-full h-2">
+                              <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.readability}%` }}></div>
+                            </div>
+                            <span className="font-medium">{result.scoreBreakdown.readability}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error Message */}
                   {result.errorMessage && (
                     <div className="mt-4">
                       <h3 className="font-medium mb-2">Error Message:</h3>
-                      <pre className="bg-white bg-opacity-50 rounded p-3 overflow-x-auto">
+                      <pre className="bg-white bg-opacity-50 rounded p-3 overflow-x-auto text-sm">
                         {result.errorMessage}
                       </pre>
                     </div>
                   )}
 
+                  {/* Failed Test Case */}
                   {result.failedTestCase && (
                     <div className="mt-4">
                       <h3 className="font-medium mb-2">Failed Test Case:</h3>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <p className="font-medium">Input:</p>
-                          <pre className="bg-white bg-opacity-50 rounded p-2 mt-1">
+                          <p className="font-medium mb-1 text-sm">Input:</p>
+                          <pre className="bg-white bg-opacity-50 rounded p-2 text-xs overflow-x-auto">
                             {JSON.stringify(result.failedTestCase.input, null, 2)}
                           </pre>
                         </div>
                         <div>
-                          <p className="font-medium">Expected:</p>
-                          <pre className="bg-white bg-opacity-50 rounded p-2 mt-1">
+                          <p className="font-medium mb-1 text-sm">Expected:</p>
+                          <pre className="bg-white bg-opacity-50 rounded p-2 text-xs overflow-x-auto">
                             {JSON.stringify(result.failedTestCase.expected, null, 2)}
                           </pre>
                         </div>
                         <div>
-                          <p className="font-medium">Your Output:</p>
-                          <pre className="bg-white bg-opacity-50 rounded p-2 mt-1">
+                          <p className="font-medium mb-1 text-sm">Your Output:</p>
+                          <pre className="bg-white bg-opacity-50 rounded p-2 text-xs overflow-x-auto">
                             {JSON.stringify(result.failedTestCase.actual, null, 2)}
                           </pre>
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Feedback */}
+                  {result.feedback && result.feedback.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="font-medium mb-2">Feedback:</h3>
+                      <ul className="list-disc list-inside space-y-1 text-sm bg-white bg-opacity-30 rounded p-3">
+                        {result.feedback.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
