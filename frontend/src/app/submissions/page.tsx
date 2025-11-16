@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { Navigation } from '../components/Navigation';
 import { LoadingPage } from '../components/LoadingSpinner';
+import { Submission as ApiSubmission } from '../../types/api';
 
-interface Submission {
+interface SubmissionDisplay {
   id: string;
-  problemId: string;
+  problemId: number;
   problemTitle: string;
-  status: 'Accepted' | 'Wrong Answer' | 'Time Limit' | 'Runtime Error';
+  status: ApiSubmission['status'];
   language: string;
   submittedAt: string;
   executionTime: number;
@@ -24,7 +25,7 @@ interface Submission {
 }
 
 export default function SubmissionsPage() {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionDisplay[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,22 +50,22 @@ export default function SubmissionsPage() {
           return;
         }
 
-        const data = await response.json();
-        const transformedSubmissions = (data || []).map((submission: any) => ({
-          id: submission._id || submission.id,
-          problemId: submission.problem?.pid || submission.problemId,
-          problemTitle: submission.problem?.title || 'Unknown Problem',
+        const data: ApiSubmission[] = await response.json();
+        const transformedSubmissions: SubmissionDisplay[] = (data || []).map((submission) => ({
+          id: submission._id,
+          problemId: submission.problem.pid,
+          problemTitle: submission.problem.title,
           status: submission.status,
           language: submission.language,
-          submittedAt: submission.timestamp || submission.submittedAt,
-          executionTime: submission.executionTime || 0,
+          submittedAt: submission.timestamp,
+          executionTime: submission.executionTime,
           memoryUsed: submission.memoryUsed || 0,
           score: {
-            total: submission.score || 0,
-            correctness: (submission.passedTests / submission.totalTests * 100) || 0,
-            performance: submission.executionTime < 1000 ? 100 : Math.max(0, 100 - (submission.executionTime - 1000) / 100),
-            style: submission.styleScore || 90, // Fallback until style checking is implemented
-            readability: submission.readabilityScore || 90 // Fallback until readability metrics are implemented
+            total: submission.score,
+            correctness: submission.scoreBreakdown?.correctness || (submission.passedTests / submission.totalTests * 100),
+            performance: submission.scoreBreakdown?.performance || (submission.executionTime < 1000 ? 100 : Math.max(0, 100 - (submission.executionTime - 1000) / 100)),
+            style: submission.scoreBreakdown?.style || 0,
+            readability: submission.scoreBreakdown?.readability || 0
           }
         }));
         

@@ -5,49 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { Navigation } from '../../components/Navigation';
 import { LoadingPage } from '../../components/LoadingSpinner';
-
-interface Problem {
-  pid: number;
-  title: string;
-  problemStatement: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  tags: string[];
-  examples: Array<{
-    input: string;
-    output: string;
-    explanation?: string;
-  }>;
-  constraints: string[];
-  functionSignatures: {
-    python?: {
-      name: string;
-      returnType: string;
-      parameters: Array<{
-        name: string;
-        type: string;
-      }>;
-    };
-    javascript?: {
-      name: string;
-      returnType: string;
-      parameters: Array<{
-        name: string;
-        type: string;
-      }>;
-    };
-  };
-  timeLimit: {
-    python?: number;
-    javascript?: number;
-    default: number;
-  };
-  memoryLimit: {
-    python?: number;
-    javascript?: number;
-    default: number;
-  };
-  hints: string[];
-}
+import { Problem } from '../../../types/api';
 
 export default function ProblemDetailPage() {
   const [problem, setProblem] = useState<Problem | null>(null);

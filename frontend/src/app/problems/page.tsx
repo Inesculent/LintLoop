@@ -4,27 +4,18 @@ import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { Navigation } from '../components/Navigation';
 import { LoadingPage } from '../components/LoadingSpinner';
+import { Problem as ApiProblem, Difficulty } from '../../types/api';
 
-interface Problem {
-  pid: number;
-  title: string;
-  problemStatement: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  tags: string[];
-  solved?: boolean; // Will be populated from user's submissions
-  successRate?: number; // Will be calculated from all submissions
-  examples: Array<{
-    input: string;
-    output: string;
-    explanation?: string;
-  }>;
+interface ProblemListItem extends Pick<ApiProblem, 'pid' | 'title' | 'difficulty' | 'tags'> {
+  solved?: boolean;
+  successRate?: number;
 }
 
 export default function ProblemsPage() {
-  const [problems, setProblems] = useState<Problem[]>([]);
+  const [problems, setProblems] = useState<ProblemListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [difficulty, setDifficulty] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
+  const [difficulty, setDifficulty] = useState<'All' | Difficulty>('All');
 
   useEffect(() => {
     const fetchProblems = async () => {

@@ -6,56 +6,16 @@ import Editor from '@monaco-editor/react';
 import { ProtectedRoute } from '../../../components/ProtectedRoute';
 import { Navigation } from '../../../components/Navigation';
 import { LoadingPage } from '../../../components/LoadingSpinner';
-
-interface Problem {
-  pid: number;
-  title: string;
-  starterCode: {
-    python?: string;
-    javascript?: string;
-  };
-  functionSignatures: {
-    python?: {
-      name: string;
-      returnType: string;
-      parameters: Array<{
-        name: string;
-        type: string;
-      }>;
-    };
-    javascript?: {
-      name: string;
-      returnType: string;
-      parameters: Array<{
-        name: string;
-        type: string;
-      }>;
-    };
-  };
-}
-
-interface ExecutionResult {
-  status: 'Accepted' | 'Wrong Answer' | 'Time Limit Exceeded' | 'Memory Limit Exceeded' | 'Runtime Error' | 'Compilation Error';
-  passedTests: number;
-  totalTests: number;
-  executionTime: number;
-  memoryUsed?: number;
-  errorMessage?: string;
-  failedTestCase?: {
-    input: any;
-    expected: any;
-    actual: any;
-  };
-}
+import { Problem as ApiProblem, ExecutionResult, Language } from '../../../../types/api';
 
 export default function ProblemSolutionPage() {
   const rawParams = useParams();
   const pid = Array.isArray(rawParams?.pid) ? rawParams.pid[0] : rawParams?.pid;
 
-  const [problem, setProblem] = useState<Problem | null>(null);
+  const [problem, setProblem] = useState<ApiProblem | null>(null);
   const [loading, setLoading] = useState(true);
   const [executing, setExecuting] = useState(false);
-  const [language, setLanguage] = useState<'python' | 'javascript'>('python');
+  const [language, setLanguage] = useState<Language>('python');
   const [code, setCode] = useState('');
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,10 +52,10 @@ export default function ProblemSolutionPage() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        const problemData = await problemResponse.json();
+        const problemData: ApiProblem = await problemResponse.json();
 
         // If there's a previous submission, use that code, otherwise use starter code
-        let initialCode = problemData.starterCode[language] || '';
+        let initialCode = problemData.starterCode?.[language] || '';
         if (lastSubmissionResponse.ok) {
           const lastSubmission = await lastSubmissionResponse.json();
           if (lastSubmission && lastSubmission.code) {
@@ -118,9 +78,9 @@ export default function ProblemSolutionPage() {
     }
   }, [pid, language]);
 
-  const handleLanguageChange = (newLanguage: 'python' | 'javascript') => {
+  const handleLanguageChange = (newLanguage: Language) => {
     setLanguage(newLanguage);
-    if (problem) {
+    if (problem && problem.starterCode) {
       setCode(problem.starterCode[newLanguage] || '');
     }
   };
@@ -239,10 +199,11 @@ export default function ProblemSolutionPage() {
                   <div className="flex items-center space-x-4">
                     <select
                       value={language}
-                      onChange={(e) => handleLanguageChange(e.target.value as 'python' | 'javascript')}
+                      onChange={(e) => handleLanguageChange(e.target.value as Language)}
                       className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >
                       <option value="python">Python</option>
+                      <option value="java">Java</option>
                       <option value="javascript">JavaScript</option>
                     </select>
                     <button
