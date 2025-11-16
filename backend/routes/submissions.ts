@@ -21,20 +21,38 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 // Get all submissions for a specific user on a specific problem (pass/fail/score history)
-router.get('/user/:userId/problem/:problemId', authenticate, async (req: Request, res: Response) => {
+router.get('/user/:uid/problem/:pid', authenticate, async (req: Request, res: Response) => {
   try {
-    const { userId, problemId } = req.params;
+    const uid = parseInt(req.params.uid);
+    const pid = parseInt(req.params.pid);
     
-    // Validate ObjectIds
-    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(problemId)) {
-      return res.status(400).json({ error: 'Invalid user ID or problem ID' });
+    // Validate parameters
+    if (isNaN(uid) || isNaN(pid)) {
+      return res.status(400).json({ error: 'Invalid user ID or problem ID - must be numbers' });
     }
 
-    const submissions = await submissionQueries.getSubmissionsByUser(userId);
+    // Find user by uid
+    const User = (await import('../models/Users')).default;
+    const user = await User.findOne({ uid });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Find problem by pid
+    const Problem = (await import('../models/Problems')).default;
+    const problem = await Problem.findOne({ pid });
+    
+    if (!problem) {
+      return res.status(404).json({ error: 'Problem not found' });
+    }
+
+    // Get all submissions by user
+    const submissions = await submissionQueries.getSubmissionsByUser((user._id as Types.ObjectId).toString());
     
     // Filter for specific problem and format response with just pass/fail/score
     const problemSubmissions = submissions
-      .filter(sub => sub.problem._id.toString() === problemId)
+      .filter(sub => sub.problem._id.toString() === (problem._id as Types.ObjectId).toString())
       .map(sub => ({
         _id: sub._id,
         timestamp: sub.timestamp,
@@ -86,16 +104,25 @@ router.get('/:submissionId', authenticate, async (req: Request, res: Response) =
   }
 });
 
-// Get all submissions for a specific problem (admin only)
-router.get('/problem/:problemId', authenticate, requireAdmin, async (req: Request, res: Response) => {
+// Get all submissions for a specific problem by pid (admin only)
+router.get('/problem/:pid', authenticate, requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { problemId } = req.params;
+    const pid = parseInt(req.params.pid);
     
-    if (!Types.ObjectId.isValid(problemId)) {
-      return res.status(400).json({ error: 'Invalid problem ID' });
+    if (isNaN(pid)) {
+      return res.status(400).json({ error: 'Invalid problem ID - must be a number' });
     }
 
-    const submissions = await submissionQueries.getSubmissionsByProblem(problemId);
+    // First, find the problem by pid to get its ObjectId
+    const Problem = (await import('../models/Problems')).default;
+    const problem = await Problem.findOne({ pid });
+    
+    if (!problem) {
+      return res.status(404).json({ error: 'Problem not found' });
+    }
+
+    // Now get submissions for this problem
+    const submissions = await submissionQueries.getSubmissionsByProblem((problem._id as Types.ObjectId).toString());
     return res.json(submissions);
   } catch (error) {
     console.error('Error fetching problem submissions:', error);
