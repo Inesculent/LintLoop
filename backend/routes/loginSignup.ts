@@ -9,6 +9,7 @@ interface SignupBody {
   name: string;
   email: string;
   password: string;
+  role: 'admin' | 'user';
 }
 
 interface LoginBody {
@@ -19,7 +20,7 @@ interface LoginBody {
 // Signup route
 router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -39,7 +40,8 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
       uid: nextUid,
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      role: role
     });
 
     await user.save();
@@ -58,7 +60,8 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
         id: user._id,
         uid: user.uid,
         name: user.name,
-        email: user.email
+        email: user.email,
+        role: user.role
       }
     });
   } catch (error) {
