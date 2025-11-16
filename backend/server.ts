@@ -19,7 +19,12 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://lintloop.com' // replace with your production domain
+    : 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
 
 // Health check endpoint
