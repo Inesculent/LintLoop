@@ -21,6 +21,7 @@ export const createUser = async (userData: {
   name: string;
   email: string;
   password: string;
+  role: 'admin' | 'user';
 }) => {
   const newUser = new User(userData);
   return await newUser.save();
