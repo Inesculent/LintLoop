@@ -257,36 +257,58 @@ async function runPylint(code: string): Promise<LinterResult> {
   try {
     const image = 'python:3.9-slim';
     
-    // Create container with pylint installed
+    // Pylint configuration to customize rules
+    const pylintrc = `[MASTER]
+disable=C0114,C0115,C0116,R0903
+max-line-length=120
+
+[MESSAGES CONTROL]
+enable=all
+
+[BASIC]
+good-names=i,j,k,x,y,z,_
+variable-rgx=[a-z_][a-z0-9_]{0,30}$
+argument-rgx=[a-z_][a-z0-9_]{0,30}$
+attr-rgx=[a-z_][a-z0-9_]{0,30}$
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__))$
+`;
+    
+    // Create container with pylint installed - need network to install
     const commands = [
       'sh', '-c',
-      'pip install -q pylint && echo "$CODE" > /tmp/solution.py && pylint --output-format=json /tmp/solution.py || true'
+      'pip install -q pylint && pylint --rcfile=/tmp/.pylintrc --output-format=json /tmp/solution.py 2>/dev/null || true'
     ];
     
     container = await docker.createContainer({
       Image: image,
       Cmd: commands,
-      Env: [`CODE=${code}`],
       Tty: false,
       AttachStdout: true,
       AttachStderr: true,
       HostConfig: {
         Memory: 512 * 1024 * 1024,
         NanoCpus: 1000000000,
-        NetworkMode: 'none',
+        NetworkMode: 'bridge', // Need network to install pylint
         ReadonlyRootfs: false,
         AutoRemove: false
       }
     });
     
+    // Create tar with Python file and pylintrc
+    const pack = tar.pack();
+    pack.entry({ name: 'solution.py' }, code);
+    pack.entry({ name: '.pylintrc' }, pylintrc);
+    pack.finalize();
+    
+    await container.putArchive(pack, { path: '/tmp' });
     await container.start();
     
-    // Timeout after 10 seconds
+    // Timeout after 30 seconds (need time to install pylint)
     const timeoutHandle = setTimeout(async () => {
       try {
         if (container) await container.kill();
       } catch {}
-    }, 10000);
+    }, 30000);
     
     await container.wait();
     clearTimeout(timeoutHandle);
@@ -298,7 +320,7 @@ async function runPylint(code: string): Promise<LinterResult> {
     
     // Parse Pylint JSON output
     try {
-      // Look for JSON array in output
+      // Pylint outputs JSON array directly
       const jsonMatch = output.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const issues = JSON.parse(jsonMatch[0]);
@@ -307,16 +329,26 @@ async function runPylint(code: string): Promise<LinterResult> {
         // Pylint scoring: start at 10, subtract for issues
         // Major issues (error/fatal): -1.0 each
         // Minor issues (warning): -0.5 each
-        // Conventions/refactor: -0.2 each
+        // Conventions/refactor: -0.25 each
         let deduction = 0;
+        const violations: string[] = [];
+        
         if (Array.isArray(issues)) {
           issues.forEach((issue: any) => {
+            const symbol = issue.symbol || issue['message-id'] || '';
+            const msg = issue.message || '';
+            
             if (issue.type === 'error' || issue.type === 'fatal') {
               deduction += 1.0;
+              violations.push(`${symbol}: ${msg}`);
             } else if (issue.type === 'warning') {
               deduction += 0.5;
-            } else {
-              deduction += 0.2;
+              violations.push(`${symbol}: ${msg}`);
+            } else if (issue.type === 'convention' || issue.type === 'refactor') {
+              deduction += 0.25;
+              if (violations.length < 3) {
+                violations.push(`${symbol}: ${msg}`);
+              }
             }
           });
         }
@@ -326,24 +358,35 @@ async function runPylint(code: string): Promise<LinterResult> {
         return {
           score,
           issues: issueCount,
-          details: issueCount > 0 ? `Common issues: ${issues.slice(0, 3).map((i: any) => i.symbol || i.message).join(', ')}` : 'No issues found'
+          details: issueCount > 0 
+            ? `${violations.slice(0, 2).join('; ')}`
+            : 'No issues found'
         };
       }
     } catch (parseError) {
-      // If JSON parsing fails, use basic heuristics
+      console.error('Pylint JSON parse error:', parseError);
     }
     
-    // Fallback: count error/warning keywords
-    const errorCount = (output.match(/error|fatal/gi) || []).length;
-    const warningCount = (output.match(/warning/gi) || []).length;
-    const totalIssues = errorCount + warningCount;
+    // Fallback: Pylint might output plain text format
+    // Look for specific Pylint message patterns
+    const lines = output.split('\n');
+    const issueLines = lines.filter(line => 
+      line.match(/:\d+:\d+:/) && (line.includes('error') || line.includes('warning') || line.includes('convention'))
+    );
     
-    const score = Math.max(0, 10 - (errorCount * 1.0) - (warningCount * 0.5));
+    const errorCount = issueLines.filter(line => line.toLowerCase().includes('error')).length;
+    const warningCount = issueLines.filter(line => line.toLowerCase().includes('warning')).length;
+    const conventionCount = issueLines.filter(line => line.toLowerCase().includes('convention')).length;
+    const totalIssues = errorCount + warningCount + conventionCount;
+    
+    const score = Math.max(0, 10 - (errorCount * 1.0) - (warningCount * 0.5) - (conventionCount * 0.25));
     
     return {
       score: Math.min(10, score),
       issues: totalIssues,
-      details: totalIssues > 0 ? `${errorCount} errors, ${warningCount} warnings` : 'Code looks clean'
+      details: totalIssues > 0 
+        ? `${errorCount} errors, ${warningCount} warnings, ${conventionCount} conventions`
+        : 'Code looks clean'
     };
     
   } catch (error) {
@@ -365,12 +408,60 @@ async function runCheckstyle(code: string): Promise<LinterResult> {
   try {
     const image = 'eclipse-temurin:11-jdk';
     
+    // Checkstyle XML configuration for Google Java Style
+    const checkstyleConfig = `<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<module name="Checker">
+  <module name="TreeWalker">
+    <!-- Naming Conventions -->
+    <module name="ConstantName"/>
+    <module name="LocalFinalVariableName"/>
+    <module name="LocalVariableName"/>
+    <module name="MemberName"/>
+    <module name="MethodName"/>
+    <module name="PackageName"/>
+    <module name="ParameterName"/>
+    <module name="StaticVariableName"/>
+    <module name="TypeName"/>
+    
+    <!-- Whitespace -->
+    <module name="GenericWhitespace"/>
+    <module name="EmptyForIteratorPad"/>
+    <module name="MethodParamPad"/>
+    <module name="NoWhitespaceAfter"/>
+    <module name="NoWhitespaceBefore"/>
+    <module name="OperatorWrap"/>
+    <module name="ParenPad"/>
+    <module name="TypecastParenPad"/>
+    <module name="WhitespaceAfter"/>
+    <module name="WhitespaceAround"/>
+    
+    <!-- Coding -->
+    <module name="EmptyStatement"/>
+    <module name="EqualsHashCode"/>
+    <module name="IllegalInstantiation"/>
+    <module name="InnerAssignment"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    
+    <!-- Design -->
+    <module name="FinalClass"/>
+    <module name="HideUtilityClassConstructor"/>
+    <module name="InterfaceIsType"/>
+    <module name="VisibilityModifier"/>
+  </module>
+</module>`;
+    
     // Create container
     container = await docker.createContainer({
       Image: image,
       Cmd: [
         'sh', '-c',
-        'cd /app && javac -Xlint:all Solution.java 2>&1 || true'
+        `cd /app && \\
+         wget -q https://github.com/checkstyle/checkstyle/releases/download/checkstyle-10.12.5/checkstyle-10.12.5-all.jar && \\
+         java -jar checkstyle-10.12.5-all.jar -c /app/checkstyle.xml /app/Solution.java 2>&1 || true`
       ],
       WorkingDir: '/app',
       Tty: false,
@@ -379,15 +470,16 @@ async function runCheckstyle(code: string): Promise<LinterResult> {
       HostConfig: {
         Memory: 512 * 1024 * 1024,
         NanoCpus: 1000000000,
-        NetworkMode: 'none',
+        NetworkMode: 'bridge', // Need network to download checkstyle
         ReadonlyRootfs: false,
         AutoRemove: false
       }
     });
     
-    // Create tar with Java file
+    // Create tar with Java file and checkstyle config
     const pack = tar.pack();
     pack.entry({ name: 'Solution.java' }, code);
+    pack.entry({ name: 'checkstyle.xml' }, checkstyleConfig);
     pack.finalize();
     
     await container.putArchive(pack, { path: '/app' });
@@ -397,7 +489,7 @@ async function runCheckstyle(code: string): Promise<LinterResult> {
       try {
         if (container) await container.kill();
       } catch {}
-    }, 10000);
+    }, 30000); // Longer timeout for download
     
     await container.wait();
     clearTimeout(timeoutHandle);
@@ -407,22 +499,34 @@ async function runCheckstyle(code: string): Promise<LinterResult> {
     
     await container.remove();
     
-    // Count warnings from javac
-    const warningLines = output.split('\n').filter(line => 
-      line.includes('warning:') || line.includes('error:')
+    // Parse Checkstyle output
+    // Format: [WARN] /app/Solution.java:3:9: Variable name 'M' must match pattern...
+    const violationLines = output.split('\n').filter(line => 
+      line.includes('[WARN]') || line.includes('[ERROR]')
     );
     
-    const errorCount = warningLines.filter(line => line.includes('error:')).length;
-    const warningCount = warningLines.filter(line => line.includes('warning:')).length;
+    const errorCount = violationLines.filter(line => line.includes('[ERROR]')).length;
+    const warningCount = violationLines.filter(line => line.includes('[WARN]')).length;
     const totalIssues = errorCount + warningCount;
     
-    // Score: 10 - (errors * 1.5) - (warnings * 0.5)
-    const score = Math.max(0, Math.min(10, 10 - (errorCount * 1.5) - (warningCount * 0.5)));
+    // Extract specific violation types for feedback
+    const violations: string[] = [];
+    violationLines.slice(0, 3).forEach(line => {
+      const match = line.match(/:\s*(.+)$/);
+      if (match) {
+        violations.push(match[1].trim());
+      }
+    });
+    
+    // Score: 10 - (errors * 1.5) - (warnings * 0.3)
+    const score = Math.max(0, Math.min(10, 10 - (errorCount * 1.5) - (warningCount * 0.3)));
     
     return {
       score,
       issues: totalIssues,
-      details: totalIssues > 0 ? `${errorCount} errors, ${warningCount} warnings` : 'Code follows good practices'
+      details: totalIssues > 0 
+        ? `${errorCount} errors, ${warningCount} warnings. ${violations.slice(0, 2).join('; ')}`
+        : 'Code follows good practices'
     };
     
   } catch (error) {
