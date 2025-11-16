@@ -92,10 +92,16 @@ export default function SubmissionsPage() {
         return 'bg-green-100 text-green-800';
       case 'Wrong Answer':
         return 'bg-red-100 text-red-800';
-      case 'Time Limit':
+      case 'Time Limit Exceeded':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Memory Limit Exceeded':
         return 'bg-yellow-100 text-yellow-800';
       case 'Runtime Error':
         return 'bg-orange-100 text-orange-800';
+      case 'Compilation Error':
+        return 'bg-purple-100 text-purple-800';
+      case 'Output Limit Exceeded':
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
