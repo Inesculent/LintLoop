@@ -104,7 +104,7 @@ export default function ProblemSolutionPage() {
         },
         body: JSON.stringify({
           problemId: pid,
-          code,
+          solutionCode: code,
           language
         })
       });
