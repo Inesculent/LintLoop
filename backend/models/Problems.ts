@@ -197,4 +197,19 @@ problemSchema.pre('save', function(next) {
   next();
 });
 
+// Cascade delete: Remove all submissions when a problem is deleted
+problemSchema.pre('findOneAndDelete', async function(next) {
+  try {
+    const problem = await this.model.findOne(this.getFilter());
+    if (problem) {
+      // Delete all submissions associated with this problem
+      await mongoose.model('Submission').deleteMany({ problem: problem._id });
+      console.log(`Deleted submissions for problem ${problem.pid}`);
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
+
 export default mongoose.model<IProblem>("Problem", problemSchema);

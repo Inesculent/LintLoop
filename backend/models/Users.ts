@@ -62,4 +62,19 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+// Cascade delete: Remove all submissions when a user is deleted
+userSchema.pre('findOneAndDelete', async function(next) {
+  try {
+    const user = await this.model.findOne(this.getFilter());
+    if (user) {
+      // Delete all submissions associated with this user
+      await mongoose.model('Submission').deleteMany({ user: user._id });
+      console.log(`Deleted submissions for user ${user.uid}`);
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
+
 export default mongoose.model<IUser>("User", userSchema);
