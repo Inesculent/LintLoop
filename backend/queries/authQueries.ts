@@ -1,7 +1,7 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import User from '../models/User';
+import User from '../models/Users';
 import { send2FAEmail } from '../utils/email';
 
 export const authenticateUser = async (email: string, password: string) => {
