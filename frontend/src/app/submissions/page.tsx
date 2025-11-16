@@ -86,7 +86,7 @@ export default function SubmissionsPage() {
     return new Date(dateString).toLocaleString();
   };
 
-  const getStatusColor = (status: Submission['status']) => {
+  const getStatusColor = (status: ApiSubmission['status']) => {
     switch (status) {
       case 'Accepted':
         return 'bg-green-100 text-green-800';
