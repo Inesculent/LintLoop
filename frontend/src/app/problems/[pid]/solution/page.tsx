@@ -189,9 +189,9 @@ export default function ProblemSolutionPage() {
               <span className="block sm:inline">{error}</span>
             </div>
           ) : problem && (
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="bg-white rounded-lg shadow p-6">
+            <div className="space-y-4">
+              {/* Header with Actions */}
+              <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center justify-between">
                   <h1 className="text-2xl font-bold text-gray-900">
                     {problem.pid}. {problem.title}
@@ -224,15 +224,89 @@ export default function ProblemSolutionPage() {
                 </div>
               </div>
 
-              {/* Code Editor */}
-              <div className="bg-white rounded-lg shadow">
-                <div className="p-4">
-                  <textarea
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="w-full h-96 font-mono text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    spellCheck="false"
-                  />
+              {/* Split View: Problem Description (Left) + Code Editor (Right) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Left Panel: Problem Description */}
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="p-6 space-y-6 overflow-y-auto" style={{ maxHeight: '70vh' }}>
+                    {/* Problem Statement */}
+                    <div>
+                      <h2 className="text-lg font-semibold mb-2">Problem Description</h2>
+                      <div className="prose prose-sm max-w-none text-gray-700">
+                        {problem.problemStatement}
+                      </div>
+                    </div>
+
+                    {/* Examples */}
+                    {problem.examples && problem.examples.length > 0 && (
+                      <div>
+                        <h2 className="text-lg font-semibold mb-2">Examples</h2>
+                        {problem.examples.map((example, idx) => (
+                          <div key={idx} className="mb-4 p-3 bg-gray-50 rounded">
+                            <p className="font-medium text-sm">Example {idx + 1}:</p>
+                            <div className="mt-2 space-y-1 text-sm">
+                              <div>
+                                <span className="font-medium">Input:</span>
+                                <pre className="inline ml-2 font-mono">{example.input}</pre>
+                              </div>
+                              <div>
+                                <span className="font-medium">Output:</span>
+                                <pre className="inline ml-2 font-mono">{example.output}</pre>
+                              </div>
+                              {example.explanation && (
+                                <div>
+                                  <span className="font-medium">Explanation:</span>
+                                  <span className="ml-2">{example.explanation}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Constraints */}
+                    {problem.constraints && problem.constraints.length > 0 && (
+                      <div>
+                        <h2 className="text-lg font-semibold mb-2">Constraints</h2>
+                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                          {problem.constraints.map((constraint, idx) => (
+                            <li key={idx}>{constraint}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Hints */}
+                    {problem.hints && problem.hints.length > 0 && (
+                      <div>
+                        <h2 className="text-lg font-semibold mb-2">Hints</h2>
+                        <div className="space-y-2">
+                          {problem.hints.map((hint, idx) => (
+                            <details key={idx} className="text-sm">
+                              <summary className="cursor-pointer font-medium text-blue-600 hover:text-blue-800">
+                                Hint {idx + 1}
+                              </summary>
+                              <p className="mt-2 text-gray-700 pl-4">{hint}</p>
+                            </details>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Panel: Code Editor */}
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="p-4">
+                    <textarea
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      className="w-full font-mono text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      style={{ height: '65vh', minHeight: '500px' }}
+                      spellCheck="false"
+                    />
+                  </div>
                 </div>
               </div>
 
