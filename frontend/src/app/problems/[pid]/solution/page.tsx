@@ -21,6 +21,7 @@ export default function ProblemSolutionPage() {
   const [error, setError] = useState<string | null>(null);
   const [customTestCases, setCustomTestCases] = useState<Array<{ input: any; output: any }>>([]);
   const [showTestCaseInput, setShowTestCaseInput] = useState(false);
+  const [editorLoading, setEditorLoading] = useState(true);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -395,13 +396,20 @@ export default function ProblemSolutionPage() {
 
                 {/* Right Panel: Code Editor */}
                 <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="h-full">
+                  <div className="relative" style={{ height: '65vh', minHeight: '500px' }}>
+                    {editorLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                        <div className="text-white">Loading editor...</div>
+                      </div>
+                    )}
                     <Editor
-                      height="65vh"
+                      height="100%"
                       language={language}
                       value={code}
                       onChange={(value) => setCode(value || '')}
+                      onMount={() => setEditorLoading(false)}
                       theme="vs-dark"
+                      loading={<div className="flex items-center justify-center h-full bg-gray-900 text-white">Loading editor...</div>}
                       options={{
                         minimap: { enabled: true },
                         fontSize: 14,
@@ -413,7 +421,8 @@ export default function ProblemSolutionPage() {
                         bracketPairColorization: { enabled: true },
                         suggest: {
                           snippetsPreventQuickSuggestions: false
-                        }
+                        },
+                        padding: { top: 10, bottom: 10 }
                       }}
                     />
                   </div>
