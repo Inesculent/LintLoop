@@ -19,6 +19,8 @@ export default function ProblemSolutionPage() {
   const [code, setCode] = useState('');
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [customTestCases, setCustomTestCases] = useState<Array<{ input: any; output: any }>>([]);
+  const [showTestCaseInput, setShowTestCaseInput] = useState(false);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -130,7 +132,7 @@ export default function ProblemSolutionPage() {
       const token = localStorage.getItem('token');
       const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
 
-      const response = await fetch(`${apiBase}/api/execute`, {
+      const response = await fetch(`${apiBase}/api/run-test`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -138,8 +140,9 @@ export default function ProblemSolutionPage() {
         },
         body: JSON.stringify({
           problemId: pid,
-          code,
-          language
+          solutionCode: code,
+          language,
+          testCases: customTestCases.length > 0 ? customTestCases : undefined
         })
       });
 
@@ -293,6 +296,100 @@ export default function ProblemSolutionPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Custom Test Cases */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-lg font-semibold">Custom Test Cases</h2>
+                        <button
+                          onClick={() => setShowTestCaseInput(!showTestCaseInput)}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          {showTestCaseInput ? '- Hide' : '+ Add Custom Test'}
+                        </button>
+                      </div>
+                      
+                      {showTestCaseInput && (
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                          <p className="text-sm text-gray-600 mb-2">
+                            Add custom test cases to test your code. Leave empty to use default visible test cases.
+                          </p>
+                          
+                          {customTestCases.map((testCase, idx) => (
+                            <div key={idx} className="flex gap-2 items-start bg-white p-3 rounded border">
+                              <div className="flex-1">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Input (JSON)</label>
+                                <input
+                                  type="text"
+                                  value={typeof testCase.input === 'string' ? testCase.input : JSON.stringify(testCase.input)}
+                                  onChange={(e) => {
+                                    const newCases = [...customTestCases];
+                                    try {
+                                      newCases[idx].input = JSON.parse(e.target.value);
+                                    } catch {
+                                      newCases[idx].input = e.target.value;
+                                    }
+                                    setCustomTestCases(newCases);
+                                  }}
+                                  placeholder='[1, 2, 3] or "hello"'
+                                  className="w-full text-sm border-gray-300 rounded px-2 py-1 font-mono"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Expected Output (JSON)</label>
+                                <input
+                                  type="text"
+                                  value={typeof testCase.output === 'string' ? testCase.output : JSON.stringify(testCase.output)}
+                                  onChange={(e) => {
+                                    const newCases = [...customTestCases];
+                                    try {
+                                      newCases[idx].output = JSON.parse(e.target.value);
+                                    } catch {
+                                      newCases[idx].output = e.target.value;
+                                    }
+                                    setCustomTestCases(newCases);
+                                  }}
+                                  placeholder='6 or "olleh"'
+                                  className="w-full text-sm border-gray-300 rounded px-2 py-1 font-mono"
+                                />
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const newCases = customTestCases.filter((_, i) => i !== idx);
+                                  setCustomTestCases(newCases);
+                                }}
+                                className="mt-5 text-red-600 hover:text-red-800 text-sm"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                          
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setCustomTestCases([...customTestCases, { input: '', output: '' }])}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                            >
+                              + Add Test Case
+                            </button>
+                            {customTestCases.length > 0 && (
+                              <button
+                                onClick={() => setCustomTestCases([])}
+                                className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                              >
+                                Clear All
+                              </button>
+                            )}
+                          </div>
+                          
+                          {customTestCases.length > 0 && (
+                            <p className="text-xs text-green-600 mt-2">
+                              ✓ {customTestCases.length} custom test case(s) will be used when you click "Run Code"
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
