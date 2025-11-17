@@ -1,5 +1,8 @@
+import 'dart:html' as html;
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'dart:io' show Platform;
+import 'dart:ui' as ui;
+import 'dart:js' as js;
 
 class MonacoEditorWidget extends StatefulWidget {
   @override
@@ -7,54 +10,41 @@ class MonacoEditorWidget extends StatefulWidget {
 }
 
 class _MonacoEditorWidgetState extends State<MonacoEditorWidget> {
-  
+  late StreamSubscription<html.MessageEvent> _messageSubscription;
+
   @override
   void initState() {
     super.initState();
+
+    _messageSubscription = html.window.onMessage.listen((event) {
+      print(event.data);
+    });
   }
 
   @override
   void dispose() {
+    _messageSubscription.cancel();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
-    // Monaco Editor is web-only; show placeholder on desktop/mobile platforms
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.code, size: 48),
-            SizedBox(height: 16),
-            Text('Monaco Editor is not available on this platform'),
-            SizedBox(height: 8),
-            Text('This feature requires the web platform'),
-          ],
-        ),
-      );
-    }
-    
-    if (Platform.isAndroid || Platform.isIOS) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.code, size: 48),
-            SizedBox(height: 16),
-            Text('Monaco Editor is not available on mobile'),
-            SizedBox(height: 8),
-            Text('This feature requires the web platform'),
-          ],
-        ),
-      );
-    }
+    //iFrame
+    final String iframeId = 'monaco-editor-container';
 
-    // Fallback for web platform
-    return const Center(
-      child: Text('Monaco Editor'),
+    //create iframe element
+    final html.IFrameElement iframeElement = html.IFrameElement()
+      ..src = 'monaco_editor.html'
+      ..style.border = 'none';
+
+    //register iframe
+    //ignore:undefined_prefixed_name
+    ui.platformViewRegistry.registerViewFactory(
+      iframeId,
+      (int viewId) => iframeElement,
     );
+
+    return HtmlElementView(viewType: iframeId);
   }
 }
 
