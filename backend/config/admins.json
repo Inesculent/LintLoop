@@ -1,0 +1,7 @@
+{
+  "adminEmails": [
+    "admin@example.com"
+  ],
+  "description": "List of email addresses that should have admin privileges. Changes require server restart."
+}
+

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import User from '../models/Users';
 
 // Extend Express Request type to include user info
 export interface AuthRequest extends Request {
@@ -34,17 +35,19 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     // Attach user ID to request
     req.userId = decoded.userId;
     
-    // If you want to attach full user info, fetch from database:
-    // const user = await User.findById(decoded.userId);
-    // if (!user) {
-    //   res.status(401).json({ error: 'User not found' });
-    //   return;
-    // }
-    // req.user = {
-    //   uid: user.uid,
-    //   email: user.email,
-    //   role: user.role || 'user'
-    // };
+    // Fetch full user info from database
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      res.status(401).json({ error: 'User not found' });
+      return;
+    }
+    
+    // Attach user info to request
+    req.user = {
+      uid: user.uid,
+      email: user.email,
+      role: user.role || 'user'
+    };
     
     next();
     

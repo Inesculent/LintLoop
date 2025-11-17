@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/Users';
 import { AuthRequest, authenticate } from '../middleware/authenticate';
 import { generate2FACode, verify2FACode, generateDeviceToken, verifyDeviceToken } from '../queries/authQueries';
+import { getRoleForEmail } from '../utils/adminList';
 
 const router = express.Router();
 
@@ -11,7 +12,6 @@ interface SignupBody {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'user';
 }
 
 interface LoginBody {
@@ -30,7 +30,7 @@ interface Verify2FABody {
 // Signup route
 router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -44,6 +44,9 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
     // Get the next uid by counting existing users
     const userCount = await User.countDocuments();
     const nextUid = userCount + 1;
+
+    // Determine role based on admin list
+    const role = getRoleForEmail(email);
 
     // Create new user
     const user: IUser = new User({
@@ -94,6 +97,14 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Sync role from admin list
+    const correctRole = getRoleForEmail(user.email);
+    if (user.role !== correctRole) {
+      user.role = correctRole;
+      await user.save();
+      console.log(`✅ Updated role for ${user.email} to ${correctRole}`);
     }
 
     // If a device token was provided, verify it to bypass 2FA
@@ -209,6 +220,16 @@ router.post('/verify-2fa', async (req: Request<{}, {}, Verify2FABody>, res: Resp
 
     // Get user details
     const user = await User.findById(userId);
+
+    // Sync role from admin list
+    if (user) {
+      const correctRole = getRoleForEmail(user.email);
+      if (user.role !== correctRole) {
+        user.role = correctRole;
+        await user.save();
+        console.log(`✅ Updated role for ${user.email} to ${correctRole}`);
+      }
+    }
 
     const response: any = {
       message: 'Login successful',
