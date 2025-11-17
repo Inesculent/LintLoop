@@ -20,3 +20,16 @@ export const send2FAEmail = async (email: string, code: string): Promise<void> =
     `
   });
 };
+
+// Verify transporter configuration (useful at server startup)
+export const verifyTransport = async (): Promise<void> => {
+  try {
+    await transporter.verify();
+    // eslint-disable-next-line no-console
+    console.log('Email transporter verified');
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Email transporter verification failed:', err?.message ?? err);
+    throw err;
+  }
+};

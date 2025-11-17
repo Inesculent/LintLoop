@@ -11,6 +11,7 @@ import submissionRoutes = require('./routes/submissions');
 import authRoutes from './routes/loginSignup';
 import { authenticate, AuthRequest } from './middleware/authenticate';
 import User from './models/Users';
+import { verifyTransport } from './utils/email';
 
 const dockerUtils = require('./utils/docker');
 
@@ -68,6 +69,11 @@ const initDocker = async (): Promise<void> => {
 
 connectDB();
 initDocker();
+// Verify email transport (logs success/failure) but do not crash server if verification fails.
+verifyTransport().catch(err => {
+  // eslint-disable-next-line no-console
+  console.error('Warning: email transport verification failed. 2FA emails may not be delivered.');
+});
 
 // Basic route
 app.get('/', (_req: Request, res: Response) => {

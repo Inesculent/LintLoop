@@ -148,35 +148,35 @@ export default function ProblemDetailPage() {
 
               {/* Problem Description */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Problem Description</h2>
+                <h2 className="text-lg font-semibold text-black mb-4">Problem Description</h2>
                 <div className="prose max-w-none">
                   {problem.problemStatement.split('\n').map((paragraph, index) => (
-                    <p key={index} className="mb-4 text-gray-900">{paragraph}</p>
+                    <p key={index} className="mb-4 text-black">{paragraph}</p>
                   ))}
                 </div>
               </div>
 
               {/* Examples */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Examples</h2>
+                <h2 className="text-lg font-semibold text-black mb-4">Examples</h2>
                 <div className="space-y-6">
                   {problem.examples.map((example, index) => (
                     <div key={index} className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="font-medium text-gray-900 mb-2">Example {index + 1}</h3>
+                      <h3 className="font-medium text-black mb-2">Example {index + 1}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm font-medium text-gray-800">Input:</p>
-                          <pre className="mt-1 bg-gray-100 rounded p-2 text-sm text-gray-900">{example.input}</pre>
+                          <p className="text-sm font-medium text-black">Input:</p>
+                          <pre className="mt-1 bg-gray-100 rounded p-2 text-sm text-black">{example.input}</pre>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-800">Output:</p>
-                          <pre className="mt-1 bg-gray-100 rounded p-2 text-sm text-gray-900">{example.output}</pre>
+                          <p className="text-sm font-medium text-black">Output:</p>
+                          <pre className="mt-1 bg-gray-100 rounded p-2 text-sm text-black">{example.output}</pre>
                         </div>
                       </div>
                       {example.explanation && (
                         <div className="mt-2">
-                          <p className="text-sm font-medium text-gray-700">Explanation:</p>
-              <p className="mt-1 text-sm text-gray-800">{example.explanation}</p>
+                          <p className="text-sm font-medium text-black">Explanation:</p>
+              <p className="mt-1 text-sm text-black">{example.explanation}</p>
                         </div>
                       )}
                     </div>
@@ -186,10 +186,10 @@ export default function ProblemDetailPage() {
 
               {/* Constraints */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Constraints</h2>
+                <h2 className="text-lg font-semibold text-black mb-4">Constraints</h2>
                 <ul className="list-disc list-inside space-y-2">
                   {problem.constraints.map((constraint, index) => (
-                    <li key={index} className="text-gray-900">{constraint}</li>
+                    <li key={index} className="text-black">{constraint}</li>
                   ))}
                 </ul>
               </div>

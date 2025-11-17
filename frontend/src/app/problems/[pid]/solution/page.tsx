@@ -235,7 +235,7 @@ export default function ProblemSolutionPage() {
                     {/* Problem Statement */}
                     <div>
                       <h2 className="text-lg font-semibold mb-2">Problem Description</h2>
-                      <div className="prose prose-sm max-w-none text-gray-700">
+                      <div className="prose prose-sm max-w-none text-black">
                         {problem.problemStatement}
                       </div>
                     </div>
@@ -245,25 +245,25 @@ export default function ProblemSolutionPage() {
                       <div>
                         <h2 className="text-lg font-semibold mb-2">Examples</h2>
                         {problem.examples.map((example, idx) => (
-                          <div key={idx} className="mb-4 p-3 bg-gray-50 rounded">
-                            <p className="font-medium text-sm">Example {idx + 1}:</p>
-                            <div className="mt-2 space-y-1 text-sm">
-                              <div>
-                                <span className="font-medium">Input:</span>
-                                <pre className="inline ml-2 font-mono">{example.input}</pre>
-                              </div>
-                              <div>
-                                <span className="font-medium">Output:</span>
-                                <pre className="inline ml-2 font-mono">{example.output}</pre>
-                              </div>
-                              {example.explanation && (
+                            <div key={idx} className="mb-4 p-3 bg-gray-50 rounded">
+                              <p className="font-medium text-sm text-black">Example {idx + 1}:</p>
+                              <div className="mt-2 space-y-1 text-sm">
                                 <div>
-                                  <span className="font-medium">Explanation:</span>
-                                  <span className="ml-2">{example.explanation}</span>
+                                  <span className="font-medium text-black">Input:</span>
+                                  <pre className="inline ml-2 font-mono text-black">{example.input}</pre>
                                 </div>
-                              )}
+                                <div>
+                                  <span className="font-medium text-black">Output:</span>
+                                  <pre className="inline ml-2 font-mono text-black">{example.output}</pre>
+                                </div>
+                                {example.explanation && (
+                                  <div>
+                                    <span className="font-medium text-black">Explanation:</span>
+                                    <span className="ml-2 text-black">{example.explanation}</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
                         ))}
                       </div>
                     )}
@@ -272,9 +272,9 @@ export default function ProblemSolutionPage() {
                     {problem.constraints && problem.constraints.length > 0 && (
                       <div>
                         <h2 className="text-lg font-semibold mb-2">Constraints</h2>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                        <ul className="list-disc list-inside space-y-1 text-sm text-black">
                           {problem.constraints.map((constraint, idx) => (
-                            <li key={idx}>{constraint}</li>
+                            <li key={idx} className="text-black">{constraint}</li>
                           ))}
                         </ul>
                       </div>
