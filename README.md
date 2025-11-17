@@ -1,4 +1,5 @@
-﻿# LintLoop
+!(https://github.com/Inesculent/LintLoop/blob/main/mobile/LL_icon_transparent.png)
+ # LintLoop
 
 Full-stack coding practice platform with automated code grading focused on style, readability, and performance.
 
