@@ -11,7 +11,6 @@ export default function ProblemDetailPage() {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastResult, setLastResult] = useState<any | null>(null);
   const router = useRouter();
   const rawParams = useParams();
   const pid = Array.isArray(rawParams?.pid) ? rawParams.pid[0] : rawParams?.pid; // useParams is safe in client components
@@ -74,13 +73,7 @@ export default function ProblemDetailPage() {
         };
 
         setProblem(enhancedProblem);
-        // load last result (if any) from localStorage
-        try {
-          const raw = localStorage.getItem(`lintloop:lastResult:${problemData.pid}`);
-          if (raw) setLastResult(JSON.parse(raw));
-        } catch (e) {
-          // ignore
-        }
+        // nothing persisted on problem page
       } catch (error) {
         console.error('Error fetching problem:', error);
         setError(error instanceof Error ? error.message : 'Failed to fetch problem');
@@ -122,56 +115,7 @@ export default function ProblemDetailPage() {
             </div>
           ) : problem && (
             <div className="space-y-6">
-              {/* Last Result (if present) */}
-              {lastResult && (
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-black">Status: {lastResult.status}</h3>
-                      <div className="text-sm text-gray-600">Problem: {lastResult.problemTitle}</div>
-                      <div className="text-sm text-gray-600">Language: {lastResult.language}</div>
-                      <div className="text-sm text-gray-600">Submitted: {new Date(lastResult.submittedAt).toLocaleString()}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm">Tests Passed</div>
-                      <div className="text-2xl font-bold">{lastResult.passedTests ?? 0}/{lastResult.totalTests ?? 0}</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="bg-gray-50 p-3 rounded">
-                      <div className="text-xs opacity-80">Execution Time</div>
-                      <div className="font-bold">{lastResult.executionTime ?? '-'} ms</div>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded">
-                      <div className="text-xs opacity-80">Overall Score</div>
-                      <div className="font-bold">{lastResult.score ?? 0}%</div>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded">
-                      <div className="text-xs opacity-80">Memory Used</div>
-                      <div className="font-bold">{lastResult.memoryUsed ?? '-'}</div>
-                    </div>
-                  </div>
-
-                  {lastResult.errorMessage && (
-                    <div className="mt-4">
-                      <h4 className="font-semibold">Error Message</h4>
-                      <pre className="bg-gray-100 rounded p-3 mt-2 text-sm overflow-x-auto">{lastResult.errorMessage}</pre>
-                    </div>
-                  )}
-
-                  {lastResult.feedback && lastResult.feedback.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="font-semibold">Feedback</h4>
-                      <ul className="list-disc list-inside mt-2">
-                        {lastResult.feedback.map((f: string, i: number) => (
-                          <li key={i}>{f}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
+              
               {/* Problem Header */}
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between">

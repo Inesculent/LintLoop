@@ -118,6 +118,23 @@ export default function ProblemSolutionPage() {
     }
   }, [pid]);
 
+  // Load persisted last result for this problem (if any) so feedback shows after refresh
+  useEffect(() => {
+    if (!pid) return;
+    try {
+      const raw = localStorage.getItem(`lintloop:lastResult:${pid}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Only set if parsed pid matches current pid (safety) and we don't already have a result
+        if (parsed && parsed.pid && parsed.pid.toString() === pid.toString()) {
+          setResult(parsed as ExecutionResult);
+        }
+      }
+    } catch (e) {
+      // ignore parse/storage errors
+    }
+  }, [pid]);
+
   // Initialize leftWidth from localStorage (per-problem) or default
   useEffect(() => {
     if (!pid) return;
