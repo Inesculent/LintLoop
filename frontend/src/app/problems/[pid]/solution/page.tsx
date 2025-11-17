@@ -274,6 +274,28 @@ export default function ProblemSolutionPage() {
         feedback: submission?.feedback ?? grading?.feedback
       };
 
+      // Fill sensible defaults for score/scoreBreakdown when backend didn't provide them
+      try {
+        if ((!normalized.scoreBreakdown || Object.keys(normalized.scoreBreakdown).length === 0) && normalized.totalTests > 0) {
+          const correctness = Math.round((normalized.passedTests / normalized.totalTests) * 100);
+          const performance = normalized.executionTime ? Math.max(0, Math.round(100 - Math.max(0, (normalized.executionTime - 1000) / 100))) : 100;
+          normalized.scoreBreakdown = {
+            correctness,
+            performance,
+            style: 0,
+            readability: 0
+          } as any;
+        }
+
+        if (normalized.score === undefined && normalized.scoreBreakdown) {
+          const parts = ['correctness', 'performance', 'style', 'readability'];
+          const vals = parts.map((p) => (normalized.scoreBreakdown as any)[p] ?? 0);
+          normalized.score = Math.round(vals.reduce((a, b) => a + b, 0) / parts.length);
+        }
+      } catch (e) {
+        // ignore
+      }
+
       setResult(normalized);
       // scroll results into view so feedback is immediately visible
       setTimeout(() => {
@@ -364,6 +386,28 @@ export default function ProblemSolutionPage() {
         scoreBreakdown: output.scoreBreakdown,
         feedback: output.feedback
       };
+
+      // Fill sensible defaults for score/scoreBreakdown when backend didn't provide them
+      try {
+        if ((!normalized.scoreBreakdown || Object.keys(normalized.scoreBreakdown).length === 0) && normalized.totalTests > 0) {
+          const correctness = Math.round((normalized.passedTests / normalized.totalTests) * 100);
+          const performance = normalized.executionTime ? Math.max(0, Math.round(100 - Math.max(0, (normalized.executionTime - 1000) / 100))) : 100;
+          normalized.scoreBreakdown = {
+            correctness,
+            performance,
+            style: 0,
+            readability: 0
+          } as any;
+        }
+
+        if (normalized.score === undefined && normalized.scoreBreakdown) {
+          const parts = ['correctness', 'performance', 'style', 'readability'];
+          const vals = parts.map((p) => (normalized.scoreBreakdown as any)[p] ?? 0);
+          normalized.score = Math.round(vals.reduce((a, b) => a + b, 0) / parts.length);
+        }
+      } catch (e) {
+        // ignore
+      }
 
       setResult(normalized);
       // scroll results into view
@@ -685,73 +729,92 @@ export default function ProblemSolutionPage() {
               {/* Results */}
               {result && (
                 <div ref={resultsRef} className={`rounded-lg shadow p-6 ${getResultColor(result.status)}`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold">
-                      Status: {result.status}
-                    </h2>
-                    <div className="text-sm font-medium">
-                      {result.passedTests}/{result.totalTests} tests passed
+                  {/* Top row: Status and meta */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Status</p>
+                      <span className={`mt-1 px-3 py-1 inline-flex text-sm font-semibold rounded-full ${getResultColor(result.status)}`}>
+                        {result.status}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Problem</p>
+                      <p className="mt-1 font-medium">{problem?.title}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Language</p>
+                      <p className="mt-1 font-medium">{language}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Submitted</p>
+                      <p className="mt-1 text-sm">{((result as any).submittedAt ? new Date((result as any).submittedAt).toLocaleString() : new Date().toLocaleString())}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
-                    <div className="bg-white bg-opacity-30 p-3 rounded">
-                      <span className="block text-xs opacity-80">Execution Time</span>
-                      <span className="font-bold text-lg">{result.executionTime}ms</span>
+                  {/* Test Results */}
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                    <h3 className="font-semibold mb-3">Test Results</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Tests Passed</p>
+                        <p className="text-lg font-bold text-green-600">{result.passedTests}/{result.totalTests}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Execution Time</p>
+                        <p className="text-lg font-bold">{result.executionTime} ms</p>
+                      </div>
+                      {result.memoryUsed !== undefined && (
+                        <div>
+                          <p className="text-sm text-gray-500">Memory Used</p>
+                          <p className="text-lg font-bold">{result.memoryUsed} MB</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm text-gray-500">Overall Score</p>
+                        <p className="text-lg font-bold text-blue-600">{result.score ?? 0}%</p>
+                      </div>
                     </div>
-                    {result.memoryUsed && (
-                      <div className="bg-white bg-opacity-30 p-3 rounded">
-                        <span className="block text-xs opacity-80">Memory Used</span>
-                        <span className="font-bold text-lg">{result.memoryUsed}MB</span>
-                      </div>
-                    )}
-                    {result.score !== undefined && (
-                      <div className="bg-white bg-opacity-30 p-3 rounded">
-                        <span className="block text-xs opacity-80">Score</span>
-                        <span className="font-bold text-lg">{result.score}%</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Score Breakdown */}
                   {result.scoreBreakdown && (
-                    <div className="mt-4 p-4 bg-white bg-opacity-20 rounded">
+                    <div className="bg-blue-50 rounded-lg p-4 mb-4">
                       <h3 className="font-semibold mb-3">Score Breakdown</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
-                          <span className="block mb-1">Correctness</span>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-white bg-opacity-30 rounded-full h-2">
-                              <div className="bg-green-400 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.correctness}%` }}></div>
+                          <p className="text-sm text-gray-600">Correctness</p>
+                          <div className="flex items-center mt-1">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                              <div className="bg-green-500 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.correctness}%` }} />
                             </div>
-                            <span className="font-medium">{result.scoreBreakdown.correctness}%</span>
+                            <span className="text-sm font-medium">{result.scoreBreakdown.correctness}%</span>
                           </div>
                         </div>
                         <div>
-                          <span className="block mb-1">Performance</span>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-white bg-opacity-30 rounded-full h-2">
-                              <div className="bg-blue-400 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.performance}%` }}></div>
+                          <p className="text-sm text-gray-600">Performance</p>
+                          <div className="flex items-center mt-1">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                              <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.performance}%` }} />
                             </div>
-                            <span className="font-medium">{result.scoreBreakdown.performance}%</span>
+                            <span className="text-sm font-medium">{result.scoreBreakdown.performance}%</span>
                           </div>
                         </div>
                         <div>
-                          <span className="block mb-1">Style</span>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-white bg-opacity-30 rounded-full h-2">
-                              <div className="bg-purple-400 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.style}%` }}></div>
+                          <p className="text-sm text-gray-600">Style</p>
+                          <div className="flex items-center mt-1">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                              <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.style}%` }} />
                             </div>
-                            <span className="font-medium">{result.scoreBreakdown.style}%</span>
+                            <span className="text-sm font-medium">{result.scoreBreakdown.style}%</span>
                           </div>
                         </div>
                         <div>
-                          <span className="block mb-1">Readability</span>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-white bg-opacity-30 rounded-full h-2">
-                              <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.readability}%` }}></div>
+                          <p className="text-sm text-gray-600">Readability</p>
+                          <div className="flex items-center mt-1">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                              <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${result.scoreBreakdown.readability}%` }} />
                             </div>
-                            <span className="font-medium">{result.scoreBreakdown.readability}%</span>
+                            <span className="text-sm font-medium">{result.scoreBreakdown.readability}%</span>
                           </div>
                         </div>
                       </div>
@@ -760,36 +823,28 @@ export default function ProblemSolutionPage() {
 
                   {/* Error Message */}
                   {result.errorMessage && (
-                    <div className="mt-4">
-                      <h3 className="font-medium mb-2">Error Message:</h3>
-                      <pre className="bg-white bg-opacity-50 rounded p-3 overflow-x-auto text-sm">
-                        {result.errorMessage}
-                      </pre>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                      <h3 className="font-semibold text-red-800 mb-2">Error Message</h3>
+                      <pre className="text-sm text-red-700 whitespace-pre-wrap font-mono">{result.errorMessage}</pre>
                     </div>
                   )}
 
                   {/* Failed Test Case */}
                   {result.failedTestCase && (
-                    <div className="mt-4">
-                      <h3 className="font-medium mb-2">Failed Test Case:</h3>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                      <h3 className="font-semibold text-yellow-800 mb-3">Failed Test Case</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <p className="font-medium mb-1 text-sm">Input:</p>
-                          <pre className="bg-white bg-opacity-50 rounded p-2 text-xs overflow-x-auto">
-                            {JSON.stringify(result.failedTestCase.input, null, 2)}
-                          </pre>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Input:</p>
+                          <pre className="bg-white rounded p-2 text-xs overflow-x-auto">{JSON.stringify(result.failedTestCase.input, null, 2)}</pre>
                         </div>
                         <div>
-                          <p className="font-medium mb-1 text-sm">Expected:</p>
-                          <pre className="bg-white bg-opacity-50 rounded p-2 text-xs overflow-x-auto">
-                            {JSON.stringify(result.failedTestCase.expected, null, 2)}
-                          </pre>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Expected:</p>
+                          <pre className="bg-white rounded p-2 text-xs overflow-x-auto">{JSON.stringify(result.failedTestCase.expected, null, 2)}</pre>
                         </div>
                         <div>
-                          <p className="font-medium mb-1 text-sm">Your Output:</p>
-                          <pre className="bg-white bg-opacity-50 rounded p-2 text-xs overflow-x-auto">
-                            {JSON.stringify(result.failedTestCase.actual, null, 2)}
-                          </pre>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Your Output:</p>
+                          <pre className="bg-white rounded p-2 text-xs overflow-x-auto">{JSON.stringify(result.failedTestCase.actual, null, 2)}</pre>
                         </div>
                       </div>
                     </div>
@@ -797,11 +852,11 @@ export default function ProblemSolutionPage() {
 
                   {/* Feedback */}
                   {result.feedback && result.feedback.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="font-medium mb-2">Feedback:</h3>
-                      <ul className="list-disc list-inside space-y-1 text-sm bg-white bg-opacity-30 rounded p-3">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-blue-800 mb-2">Feedback</h3>
+                      <ul className="space-y-1">
                         {result.feedback.map((item, idx) => (
-                          <li key={idx}>{item}</li>
+                          <li key={idx} className="text-sm text-blue-700">• {item}</li>
                         ))}
                       </ul>
                     </div>
