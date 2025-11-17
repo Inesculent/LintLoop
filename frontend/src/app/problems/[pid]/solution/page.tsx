@@ -27,6 +27,7 @@ export default function ProblemSolutionPage() {
   const startX = useRef(0);
   const startWidth = useRef(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -128,6 +129,14 @@ export default function ProblemSolutionPage() {
         // Only set if parsed pid matches current pid (safety) and we don't already have a result
         if (parsed && parsed.pid && parsed.pid.toString() === pid.toString()) {
           setResult(parsed as ExecutionResult);
+          // scroll persisted result into view so user sees it immediately
+          setTimeout(() => {
+            try {
+              resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+              // ignore
+            }
+          }, 80);
         }
       }
     } catch (e) {
@@ -247,6 +256,14 @@ export default function ProblemSolutionPage() {
 
       const result = await response.json();
       setResult(result);
+      // scroll results into view so feedback is immediately visible
+      setTimeout(() => {
+        try {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (e) {
+          // ignore
+        }
+      }, 80);
       // persist last result for this problem so problem page can show it
       try {
         const stored = {
@@ -297,6 +314,14 @@ export default function ProblemSolutionPage() {
 
       const result = await response.json();
       setResult(result);
+      // scroll results into view so feedback is immediately visible
+      setTimeout(() => {
+        try {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (e) {
+          // ignore
+        }
+      }, 80);
       try {
         const stored = {
           ...result,
@@ -607,7 +632,7 @@ export default function ProblemSolutionPage() {
 
               {/* Results */}
               {result && (
-                <div className={`rounded-lg shadow p-6 ${getResultColor(result.status)}`}>
+                <div ref={resultsRef} className={`rounded-lg shadow p-6 ${getResultColor(result.status)}`}>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold">
                       Status: {result.status}
