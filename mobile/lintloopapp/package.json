@@ -1,0 +1,21 @@
+{
+  "name": "lintloopapp",
+  "version": "1.0.0",
+  "description": "lintloop app",
+  "repository": {
+    "type": "git",
+    "url": "LintLoop"
+  },
+  "license": "ISC",
+  "author": "Laila K.",
+  "type": "commonjs",
+  "main": "main.dart",
+  "directories": {
+    "lib": "lib",
+    "test": "dartproptest"
+  },
+  "scripts": {
+    "test": "dartproptest",
+    "start": "node main.dart"
+  }
+}
