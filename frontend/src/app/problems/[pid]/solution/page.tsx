@@ -56,6 +56,20 @@ export default function ProblemSolutionPage() {
 
         const problemData: ApiProblem = await problemResponse.json();
 
+        // Determine which language to use for this problem.
+        // Priority: saved language in localStorage -> current state language -> 'python'
+        const langStorageKey = `lintloop:lang:${problemData.pid}`;
+        let currentLang: typeof language = language;
+        try {
+          const savedLang = localStorage.getItem(langStorageKey);
+          if (savedLang) {
+            currentLang = savedLang as typeof language;
+            setLanguage(currentLang);
+          }
+        } catch (e) {
+          // ignore storage errors
+        }
+
         // Determine initial code for the current language.
         // Priority: persisted localStorage code -> last submission -> starter code -> empty
         const storageKey = (p: string, lang: string) => `lintloop:code:${p}:${lang}`;
@@ -68,11 +82,11 @@ export default function ProblemSolutionPage() {
           }
         }
 
-        const starter = problemData.starterCode?.[language] || '';
+        const starter = problemData.starterCode?.[currentLang] || '';
 
         // Check localStorage for an existing saved draft for this problem+language
         try {
-          const saved = localStorage.getItem(storageKey(problemData.pid.toString(), language));
+          const saved = localStorage.getItem(storageKey(problemData.pid.toString(), currentLang));
           if (saved !== null) {
             initialCode = saved;
           } else if (!initialCode) {
@@ -118,6 +132,13 @@ export default function ProblemSolutionPage() {
     try {
       const saved = localStorage.getItem(storageKey(problem.pid.toString(), newLanguage));
       if (saved !== null) nextCode = saved;
+    } catch (e) {
+      // ignore
+    }
+
+    // persist chosen language for this problem so refresh keeps it
+    try {
+      localStorage.setItem(`lintloop:lang:${problem.pid}`, newLanguage);
     } catch (e) {
       // ignore
     }
