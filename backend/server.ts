@@ -70,7 +70,7 @@ const initDocker = async (): Promise<void> => {
 connectDB();
 initDocker();
 // Verify email transport (logs success/failure) but do not crash server if verification fails.
-verifyTransport().catch(err => {
+verifyTransport().catch(() => {
   // eslint-disable-next-line no-console
   console.error('Warning: email transport verification failed. 2FA emails may not be delivered.');
 });

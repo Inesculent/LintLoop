@@ -54,7 +54,7 @@ export const verifyTransport = async (): Promise<void> => {
     console.log('Email transporter verified');
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('Email transporter verification failed:', err?.message ?? err);
+    console.error('Email transporter verification failed:', err instanceof Error ? err.message : err);
     throw err;
   }
 };

@@ -123,7 +123,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
     if (user.role !== correctRole) {
       user.role = correctRole;
       await user.save();
-      console.log(`pdated role for ${user.email} to ${correctRole}`);
+      console.log(`Updated role for ${user.email} to ${correctRole}`);
     }
 
     // If a device token was provided, verify it to bypass 2FA
@@ -246,7 +246,7 @@ router.post('/verify-2fa', async (req: Request<{}, {}, Verify2FABody>, res: Resp
       if (user.role !== correctRole) {
         user.role = correctRole;
         await user.save();
-        console.log(`✅ Updated role for ${user.email} to ${correctRole}`);
+        console.log(`Updated role for ${user.email} to ${correctRole}`);
       }
     }
 
@@ -354,7 +354,7 @@ router.get('/verify-email/:token', async (req: Request, res: Response) => {
     user.verificationTokenExpiry = undefined;
     await user.save();
 
-    console.log(`✅ Email verified for user: ${user.email}`);
+    console.log(`Email verified for user: ${user.email}`);
 
     return res.json({ 
       message: 'Email verified successfully! You can now log in.',
@@ -397,7 +397,7 @@ router.post('/resend-verification', async (req: Request, res: Response) => {
     // Send verification email
     try {
       await sendVerificationEmail(email, verificationToken);
-      console.log(`✅ Verification email resent to ${email}`);
+      console.log(`Verification email resent to ${email}`);
       
       return res.json({ message: 'Verification email sent successfully' });
     } catch (emailError) {

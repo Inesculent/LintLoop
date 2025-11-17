@@ -12,12 +12,12 @@ function loadAdminList(): Set<string> {
   try {
     const adminsPath = path.join(__dirname, '../config/admins.json');
     const adminsData = JSON.parse(fs.readFileSync(adminsPath, 'utf-8'));
-    const emails = new Set(adminsData.adminEmails.map((email: string) => email.toLowerCase()));
-    console.log(`✅ Loaded ${emails.size} admin email(s) from configuration`);
+    const emails = new Set<string>(adminsData.adminEmails.map((email: string) => email.toLowerCase()));
+    console.log(`Loaded ${emails.size} admin email(s) from configuration`);
     return emails;
   } catch (error) {
-    console.error('❌ Failed to load admin configuration:', error);
-    return new Set(['admin@example.com']); // Fallback
+    console.error('Failed to load admin configuration:', error);
+    return new Set<string>(['admin@example.com']); // Fallback
   }
 }
 
