@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { Navigation } from '../components/Navigation';
 
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -31,7 +33,7 @@ export default function DashboardPage() {
         }
 
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-        
+
         // Fetch user profile, problems, and submissions in parallel
         const [profileResponse, problemsResponse, submissionsResponse] = await Promise.all([
           fetch(`${apiBase}/api/profile`, {
@@ -44,7 +46,7 @@ export default function DashboardPage() {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);
-        
+
         if (!profileResponse.ok) throw new Error('Failed to fetch user profile');
         if (!problemsResponse.ok) throw new Error('Failed to fetch problems');
 
@@ -53,7 +55,7 @@ export default function DashboardPage() {
           profileResponse.json(),
           problemsResponse.json()
         ]);
-        
+
         // Handle submissions separately since they might be empty for new users
         const submissionsData = submissionsResponse.ok ? await submissionsResponse.json() : [];
 
@@ -74,7 +76,7 @@ export default function DashboardPage() {
 
         setUser(userData);
         setProblems(processedProblems);
-        
+
       } catch (error) {
         console.error('Dashboard data fetch error:', error);
       } finally {
@@ -89,7 +91,7 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-100">
         <Navigation />
-        
+
         <main className="container mx-auto px-4 py-8">
           {loading ? (
             <div>Loading...</div>
@@ -169,22 +171,21 @@ export default function DashboardPage() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span 
-                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                  problem.difficulty === 'Easy' 
+                              <span
+                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${problem.difficulty === 'Easy'
                                     ? 'bg-green-100 text-green-800'
                                     : problem.difficulty === 'Medium'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}
                               >
                                 {problem.difficulty}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <button 
+                              <button
                                 className="text-indigo-600 hover:text-indigo-900"
-                                onClick={() => {/* TODO: Navigate to problem */}}
+                                onClick={() => router.push(`/problems/${problem.id}/solution`)}
                               >
                                 Solve
                               </button>

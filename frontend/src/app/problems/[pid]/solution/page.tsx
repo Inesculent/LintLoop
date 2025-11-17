@@ -230,6 +230,19 @@ export default function ProblemSolutionPage() {
 
       const result = await response.json();
       setResult(result);
+      // persist last result for this problem so problem page can show it
+      try {
+        const stored = {
+          ...result,
+          problemTitle: problem?.title,
+          language,
+          submittedAt: new Date().toISOString(),
+          pid
+        };
+        localStorage.setItem(`lintloop:lastResult:${pid}`, JSON.stringify(stored));
+      } catch (e) {
+        // ignore storage errors
+      }
     } catch (error) {
       console.error('Submission error:', error);
       setError(error instanceof Error ? error.message : 'Failed to submit solution');
@@ -267,6 +280,18 @@ export default function ProblemSolutionPage() {
 
       const result = await response.json();
       setResult(result);
+      try {
+        const stored = {
+          ...result,
+          problemTitle: problem?.title,
+          language,
+          submittedAt: new Date().toISOString(),
+          pid
+        };
+        localStorage.setItem(`lintloop:lastResult:${pid}`, JSON.stringify(stored));
+      } catch (e) {
+        // ignore
+      }
     } catch (error) {
       console.error('Test execution error:', error);
       setError(error instanceof Error ? error.message : 'Failed to test solution');
