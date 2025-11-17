@@ -1,4 +1,4 @@
-![LintLoop icon](https://github.com/Inesculent/LintLoop/blob/main/mobile/LL_icon_transparent.png?raw=true)
+![LintLoop icon](https://github.com/Inesculent/LintLoop/blob/main/mobile/LL_icon_200px.png?raw=true)
  # LintLoop
 
 Full-stack coding practice platform with automated code grading focused on style, readability, and performance.
