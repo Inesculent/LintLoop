@@ -113,6 +113,31 @@ export default function SignInPage() {
     }
   };
 
+  const handleResendCode = async () => {
+    if (!userIdFor2FA) return;
+    try {
+      setVerifyError(null);
+      setVerifyLoading(true);
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
+      const res = await fetch(`${apiBase}/api/auth/resend-2fa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userIdFor2FA })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setVerifyError(data?.message || 'Failed to resend code');
+      } else {
+        // show success message briefly
+        setVerifyError('Verification code resent — check your email (spam folder).');
+      }
+    } catch (err) {
+      setVerifyError((err as Error).message || 'Network error');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
   return (
     <main className="auth-hero">
       {/* Header with brand */}
@@ -151,7 +176,10 @@ export default function SignInPage() {
                   <input id="twofactor" name="twofactor" type="text" inputMode="numeric" maxLength={6} required placeholder="123456" className="input" value={twoFactorCode} onChange={e => setTwoFactorCode(e.target.value)} />
                 </div>
                 <div className="row">
-                  <button type="button" className="link" onClick={() => { setRequiresTwoFactor(false); setUserIdFor2FA(null); setTwoFactorCode(''); }}>Back</button>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button type="button" className="link" onClick={() => { setRequiresTwoFactor(false); setUserIdFor2FA(null); setTwoFactorCode(''); }}>Back</button>
+                    <button type="button" className="link" onClick={handleResendCode} disabled={verifyLoading}>Resend code</button>
+                  </div>
                 </div>
               </>
             )}

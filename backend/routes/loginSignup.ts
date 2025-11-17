@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/Users';
 import { AuthRequest, authenticate } from '../middleware/authenticate';
-import { generate2FACode, verify2FACode, generateDeviceToken, verifyDeviceToken } from '../queries/authQueries';
+import { generate2FACode, generate2FACodeNoSend, verify2FACode, generateDeviceToken, verifyDeviceToken } from '../queries/authQueries';
+import { send2FAEmail } from '../utils/email';
 
 const router = express.Router();
 
@@ -241,6 +242,33 @@ router.post('/verify-2fa', async (req: Request<{}, {}, Verify2FABody>, res: Resp
   }
 });
 
+// Resend 2FA code (public) - generates a new code and attempts to send it, returns success/failure
+router.post('/resend-2fa', async (req: Request<{}, {}, { userId: string }>, res: Response) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: 'userId required' });
+
+    // Generate a fresh code but do not auto-send from the generator
+    const code = await generate2FACodeNoSend(userId);
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    try {
+      await send2FAEmail(user.email, code);
+      return res.json({ message: '2FA email resent' });
+    } catch (err) {
+      // Log and return failure to client so frontend can show a message
+      // eslint-disable-next-line no-console
+      console.error('Resend 2FA failed:', err?.message ?? err);
+      return res.status(500).json({ message: 'Failed to send 2FA email' });
+    }
+  } catch (error) {
+    const err = error as Error;
+    return res.status(500).json({ message: 'Error resending 2FA code', error: err.message });
+  }
+});
+
 // Enable 2FA (protected route)
 router.post('/enable-2fa', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -288,3 +316,4 @@ router.post('/disable-2fa', authenticate, async (req: AuthRequest, res: Response
 });
 
 export default router;
+

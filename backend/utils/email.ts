@@ -9,16 +9,25 @@ export const transporter = nodemailer.createTransport({
 });
 
 export const send2FAEmail = async (email: string, code: string): Promise<void> => {
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Your 2FA Code',
-    text: `Your verification code is: ${code}`,
-    html: `
-      <p>Your verification code is: <strong>${code}</strong></p>
-      <p>This code expires in 10 minutes.</p>
-    `
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Your 2FA Code',
+      text: `Your verification code is: ${code}`,
+      html: `
+        <p>Your verification code is: <strong>${code}</strong></p>
+        <p>This code expires in 10 minutes.</p>
+      `
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(`2FA email sent to ${email} (messageId=${info.messageId})`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Error sending 2FA email:', err?.message ?? err);
+    throw err;
+  }
 };
 
 // Verify transporter configuration (useful at server startup)

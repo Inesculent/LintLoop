@@ -43,6 +43,23 @@ export const generate2FACode = async (userId: string): Promise<string> => {
   return code;
 };
 
+// Generate a 2FA code and do NOT auto-send it. Useful for endpoints that want
+// to control when the email is sent (for example: resend endpoints that await send).
+export const generate2FACodeNoSend = async (userId: string): Promise<string> => {
+  const code = crypto.randomInt(100000, 999999).toString();
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  user.twoFactorCode = await bcrypt.hash(code, 10);
+  user.twoFactorCodeExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+
+  return code;
+};
+
 export const verify2FACode = async (userId: string, code: string): Promise<boolean> => {
   const user = await User.findById(userId)
     .select('+twoFactorCode +twoFactorCodeExpiry');
