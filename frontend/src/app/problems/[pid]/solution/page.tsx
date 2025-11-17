@@ -254,8 +254,27 @@ export default function ProblemSolutionPage() {
         throw new Error(`Submission failed: ${response.statusText}`);
       }
 
-      const result = await response.json();
-      setResult(result);
+      const raw = await response.json();
+
+      // Normalize the backend response to the frontend ExecutionResult shape
+      const submission = raw?.submission || raw;
+      const execution = raw?.execution || {};
+      const grading = raw?.grading || {};
+
+      const normalized: ExecutionResult = {
+        status: submission?.status || 'Wrong Answer',
+        passedTests: submission?.passedTests ?? (execution.output?.passedTests ?? 0),
+        totalTests: submission?.totalTests ?? (execution.output?.totalTests ?? 0),
+        executionTime: submission?.executionTime ?? Math.round(execution.executionTime || 0),
+        memoryUsed: submission?.memoryUsed ?? execution.memoryUsed,
+        errorMessage: submission?.errorMessage ?? execution.stderr ?? null,
+        failedTestCase: submission?.failedTestCase ?? null,
+        score: submission?.score ?? grading?.totalScore,
+        scoreBreakdown: submission?.scoreBreakdown ?? grading?.breakdown,
+        feedback: submission?.feedback ?? grading?.feedback
+      };
+
+      setResult(normalized);
       // scroll results into view so feedback is immediately visible
       setTimeout(() => {
         try {
@@ -264,10 +283,10 @@ export default function ProblemSolutionPage() {
           // ignore
         }
       }, 80);
-      // persist last result for this problem so problem page can show it
+      // persist last result for this problem so solution page can show it
       try {
         const stored = {
-          ...result,
+          ...normalized,
           problemTitle: problem?.title,
           language,
           submittedAt: new Date().toISOString(),
@@ -312,9 +331,42 @@ export default function ProblemSolutionPage() {
         throw new Error(`Test execution failed: ${response.statusText}`);
       }
 
-      const result = await response.json();
-      setResult(result);
-      // scroll results into view so feedback is immediately visible
+      const raw = await response.json();
+
+      // Normalize execution response to ExecutionResult shape
+      const exec = raw || {};
+      const output = exec.output || {};
+
+      let status: ExecutionResult['status'] = 'Wrong Answer';
+      if (exec.success === false) {
+        const stderr = (exec.stderr || '').toString().toLowerCase();
+        if (stderr.includes('compilation')) status = 'Compilation Error';
+        else if (stderr.includes('timeout')) status = 'Time Limit Exceeded';
+        else if (stderr.includes('memory')) status = 'Memory Limit Exceeded';
+        else status = 'Runtime Error';
+      } else if (typeof output.passedTests === 'number' && typeof output.totalTests === 'number') {
+        status = output.passedTests === output.totalTests ? 'Accepted' : 'Wrong Answer';
+      }
+
+      const failed = (output.results && Array.isArray(output.results))
+        ? output.results.find((r: any) => !r.passed)
+        : null;
+
+      const normalized: ExecutionResult = {
+        status,
+        passedTests: output.passedTests ?? 0,
+        totalTests: output.totalTests ?? (Array.isArray(output.results) ? output.results.length : 0),
+        executionTime: Math.round(exec.executionTime || 0),
+        memoryUsed: exec.memoryUsed,
+        errorMessage: exec.stderr || null,
+        failedTestCase: failed ? { input: failed.input, expected: failed.expected, actual: failed.actual } : undefined,
+        score: output.score,
+        scoreBreakdown: output.scoreBreakdown,
+        feedback: output.feedback
+      };
+
+      setResult(normalized);
+      // scroll results into view
       setTimeout(() => {
         try {
           resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -324,7 +376,7 @@ export default function ProblemSolutionPage() {
       }, 80);
       try {
         const stored = {
-          ...result,
+          ...normalized,
           problemTitle: problem?.title,
           language,
           submittedAt: new Date().toISOString(),
