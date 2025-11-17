@@ -11,13 +11,19 @@ export interface IUser extends Document {
   twoFactorEnabled: boolean;
   twoFactorCode?: string;
   twoFactorCodeExpiry?: Date;
+  trustedDevices?: Array<{
+    tokenHash: string;
+    expiresAt: Date;
+    createdAt: Date;
+    lastUsed?: Date;
+  }>;
 }
 
 const userSchema = new mongoose.Schema({
-  uid: { 
-    type: Number, 
-    required: true, 
-    unique: true 
+  uid: {
+    type: Number,
+    required: true,
+    unique: true
   },
   role: {
     type: String,
@@ -25,30 +31,30 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'user'],
     default: 'user'
   },
-  name: { 
-    type: String, 
+  name: {
+    type: String,
     required: true,
     maxlength: 255
   },
-  email: { 
-    type: String, 
+  email: {
+    type: String,
     required: true,
-    maxlength: 255, 
+    maxlength: 255,
     unique: true,
     lowercase: true,  // acts as a toLower
     trim: true        // clears the whitespace
   },
-  password: { 
-    type: String, 
-    required: true, 
-    minlength: 8,     
-    maxlength: 255    
+  password: {
+    type: String,
+    required: true,
+    minlength: 8,
+    maxlength: 255
   },
-  problems_solved: { 
-    type: Number, 
-    default: 0 
-  }, 
-  
+  problems_solved: {
+    type: Number,
+    default: 0
+  },
+
   twoFactorEnabled: {
     type: Boolean,
     default: false
@@ -61,10 +67,17 @@ const userSchema = new mongoose.Schema({
     type: Date,
     select: false  // Don't return this in queries by default
   }
+  ,
+  trustedDevices: [{
+    tokenHash: { type: String },
+    expiresAt: { type: Date },
+    createdAt: { type: Date, default: Date.now },
+    lastUsed: { type: Date }
+  }]
 });
 
 // Cascade delete: Remove all submissions when a user is deleted
-userSchema.pre('findOneAndDelete', async function(next) {
+userSchema.pre('findOneAndDelete', async function (next) {
   try {
     const user = await this.model.findOne(this.getFilter());
     if (user) {
