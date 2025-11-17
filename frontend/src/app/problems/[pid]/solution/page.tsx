@@ -346,7 +346,7 @@ export default function ProblemSolutionPage() {
               <div ref={containerRef} className="flex flex-col lg:flex-row gap-4">
                 {/* Left Panel: Problem Description */}
                 <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col" style={{ height: '65vh', minHeight: '500px', width: leftWidth ? leftWidth : '100%' }}>
-                  <div className="p-6 space-y-6 flex-1">
+                  <div className="p-6 space-y-6 flex-1 overflow-y-auto no-scrollbar">
                     {/* Problem Statement */}
                     <div>
                       <h2 className="text-lg font-semibold mb-2 text-black">Problem Description</h2>
@@ -522,7 +522,7 @@ export default function ProblemSolutionPage() {
                   style={{ width: 12, alignSelf: 'stretch' }}
                   title="Drag to resize"
                 >
-                  <div className="w-px h-full bg-gray-100 transition-colors hover:bg-gray-200" />
+                  <div className="w-px h-full bg-gray-300 transition-colors hover:bg-gray-400" />
                 </div>
 
                 {/* Right Panel: Code Editor */}
