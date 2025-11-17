@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Editor from '@monaco-editor/react';
 import { ProtectedRoute } from '../../../components/ProtectedRoute';
@@ -21,6 +21,12 @@ export default function ProblemSolutionPage() {
   const [error, setError] = useState<string | null>(null);
   const [customTestCases, setCustomTestCases] = useState<Array<{ input: any }>>([]);
   const [showTestCaseInput, setShowTestCaseInput] = useState(false);
+  // Editor resizing state
+  const [leftWidth, setLeftWidth] = useState<number | null>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -111,6 +117,55 @@ export default function ProblemSolutionPage() {
       fetchProblem();
     }
   }, [pid]);
+
+  // Initialize leftWidth from localStorage (per-problem) or default
+  useEffect(() => {
+    if (!pid) return;
+    try {
+      const saved = localStorage.getItem(`lintloop:editorWidth:${pid}`);
+      if (saved) {
+        setLeftWidth(parseInt(saved, 10));
+      } else {
+        // default width on large screens
+        setLeftWidth(560);
+      }
+    } catch (e) {
+      setLeftWidth(560);
+    }
+  }, [pid]);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isDragging.current || !containerRef.current) return;
+      const clientX = e.clientX;
+      const dx = clientX - startX.current;
+      const newWidth = Math.max(320, Math.min(startWidth.current + dx, window.innerWidth - 320));
+      setLeftWidth(newWidth);
+    };
+
+    const onUp = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      // persist
+      try {
+        if (pid && leftWidth) localStorage.setItem(`lintloop:editorWidth:${pid}`, leftWidth.toString());
+      } catch (e) {
+        // ignore
+      }
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+
+    if (isDragging.current) {
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [leftWidth, pid]);
 
   const storageKey = (p: string, lang: string) => `lintloop:code:${p}:${lang}`;
 
@@ -288,9 +343,9 @@ export default function ProblemSolutionPage() {
               </div>
 
               {/* Split View: Problem Description (Left) + Code Editor (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div ref={containerRef} className="flex flex-col lg:flex-row gap-4">
                 {/* Left Panel: Problem Description */}
-                <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col" style={{ maxHeight: '70vh' }}>
+                <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col" style={{ maxHeight: '70vh', width: leftWidth ? leftWidth : '100%' }}>
                   <div className="p-6 space-y-6 overflow-y-auto flex-1">
                     {/* Problem Statement */}
                     <div>
@@ -435,8 +490,25 @@ export default function ProblemSolutionPage() {
                   </div>
                 </div>
 
+                {/* Divider (only on large screens) */}
+                <div
+                  onMouseDown={(e) => {
+                    // only enable dragging on large screens
+                    if (window.innerWidth < 1024) return;
+                    isDragging.current = true;
+                    startX.current = e.clientX;
+                    startWidth.current = leftWidth ?? 560;
+                    e.preventDefault();
+                  }}
+                  className="hidden lg:flex items-center justify-center cursor-col-resize"
+                  style={{ width: 12, alignSelf: 'stretch' }}
+                  title="Drag to resize"
+                >
+                  <div className="w-px h-full bg-gray-200 dark:bg-gray-600 transition-colors hover:bg-gray-300" />
+                </div>
+
                 {/* Right Panel: Code Editor */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="bg-white rounded-lg shadow overflow-hidden flex-1">
                   <div style={{ height: '65vh', minHeight: '500px' }}>
                     <Editor
                       height="100%"
