@@ -122,7 +122,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
       } catch (err) {
         // If verification fails, continue with normal flow
         // eslint-disable-next-line no-console
-        console.error('Device token verification error:', err?.message ?? err);
+        console.error('Device token verification error:', err instanceof Error ? err.message : err);
       }
     }
 
@@ -164,7 +164,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
       } catch (err) {
         // If generating device token fails, still return successful login
         // eslint-disable-next-line no-console
-        console.error('Failed to generate device token:', err?.message ?? err);
+        console.error('Failed to generate device token:', err instanceof Error ? err.message : err);
       }
     }
 
@@ -230,7 +230,7 @@ router.post('/verify-2fa', async (req: Request<{}, {}, Verify2FABody>, res: Resp
       } catch (err) {
         // log and continue
         // eslint-disable-next-line no-console
-        console.error('Failed to generate device token after 2FA:', err?.message ?? err);
+        console.error('Failed to generate device token after 2FA:', err instanceof Error ? err.message : err);
       }
     }
 
