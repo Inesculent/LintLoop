@@ -70,7 +70,7 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
     // Send verification email
     try {
       await sendVerificationEmail(email, verificationToken);
-      console.log(`✅ Verification email sent to ${email}`);
+      console.log(`Verification email sent to ${email}`);
     } catch (emailError) {
       console.error('Failed to send verification email:', emailError);
       // Don't fail signup if email fails - user can request resend later
@@ -123,7 +123,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
     if (user.role !== correctRole) {
       user.role = correctRole;
       await user.save();
-      console.log(`✅ Updated role for ${user.email} to ${correctRole}`);
+      console.log(`pdated role for ${user.email} to ${correctRole}`);
     }
 
     // If a device token was provided, verify it to bypass 2FA
