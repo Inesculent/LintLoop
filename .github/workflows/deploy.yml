@@ -24,18 +24,75 @@ jobs:
           # Navigate to project directory
           cd ~/linterloop
           
-          echo "Pulling latest code..."
-          git pull origin main
+          echo "Discarding any local changes on server..."
+          git reset --hard HEAD
+          git clean -fd
           
-          echo "Installing dependencies..."
+          echo "Pulling latest code from GitHub..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          echo "Setting up backend environment..."
           cd backend
-          npm install
+          
+          # Create .env file if it doesn't exist
+          if [ ! -f ".env" ]; then
+            echo "Creating backend .env file..."
+            cat > .env << EOF
+          PORT=5000
+          NODE_ENV=production
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          DOCKER_ENABLED=true
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+          EOF
+          fi
+          
+          echo "Installing backend dependencies..."
+          rm -rf node_modules
+          npm ci
           
           echo "Building TypeScript..."
           npm run build
           
           echo "Removing dev dependencies..."
           npm prune --production
+          
+          # Deploy frontend if it exists
+          cd ~/linterloop
+          if [ -f "frontend/package.json" ]; then
+            echo "========================================="
+            echo "Deploying Frontend (Next.js)..."
+            echo "========================================="
+            cd frontend
+            
+            # Create .env.production file
+            echo "Creating frontend .env.production file..."
+            cat > .env.production << EOF
+          NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          EOF
+            
+            rm -rf node_modules .next
+            npm ci
+            
+            echo "Building Next.js app..."
+            npm run build
+            
+            echo "Removing dev dependencies..."
+            npm prune --production
+            
+            echo "Restarting frontend with PM2..."
+            pm2 restart linterloop-frontend || pm2 start npm --name linterloop-frontend -- start
+            
+            echo "Frontend deployed successfully!"
+          else
+            echo "Frontend not ready yet - skipping frontend deployment"
+          fi
+          
+          echo "========================================="
+          echo "Backend deployment..."
+          echo "========================================="
           
           echo "Pulling Docker images for code execution..."
           docker pull python:3.9-slim
@@ -47,16 +104,20 @@ jobs:
           echo "Saving PM2 process list..."
           pm2 save
           
-          echo "Deployment complete!"
-          echo "----------------------------------------"
+          echo "========================================"
+          echo "Deployment Complete!"
+          echo "========================================"
+          echo "PM2 Process Status:"
           pm2 status
           echo "----------------------------------------"
+          echo "Docker Images:"
           docker images | grep -E "python|temurin"
+          echo "========================================"
           
     - name: Notify on success
       if: success()
-      run: echo "✅ Deployment successful!"
+      run: echo "Deployment successful!"
       
     - name: Notify on failure
       if: failure()
-      run: echo "❌ Deployment failed - check logs above"
+      run: echo "Deployment failed - check logs above"

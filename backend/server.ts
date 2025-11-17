@@ -11,6 +11,7 @@ import submissionRoutes = require('./routes/submissions');
 import authRoutes from './routes/loginSignup';
 import { authenticate, AuthRequest } from './middleware/authenticate';
 import User from './models/Users';
+import { verifyTransport } from './utils/email';
 
 const dockerUtils = require('./utils/docker');
 
@@ -19,12 +20,17 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://www.inesculent.dev', 'https://inesculent.dev']
+    : 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
-  res.json({ 
+  res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
@@ -63,10 +69,15 @@ const initDocker = async (): Promise<void> => {
 
 connectDB();
 initDocker();
+// Verify email transport (logs success/failure) but do not crash server if verification fails.
+verifyTransport().catch(err => {
+  // eslint-disable-next-line no-console
+  console.error('Warning: email transport verification failed. 2FA emails may not be delivered.');
+});
 
 // Basic route
 app.get('/', (_req: Request, res: Response) => {
-  res.json({ 
+  res.json({
     message: 'LinterLoop API',
     description: 'Code practice platform with automated style and performance grading',
     endpoints: ['/health', '/api/auth/signup', '/api/auth/login', '/api/problems', '/api/submissions', '/api/execute'],

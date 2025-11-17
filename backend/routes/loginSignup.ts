@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/Users';
 import { AuthRequest, authenticate } from '../middleware/authenticate';
-import { generate2FACode, verify2FACode } from '../queries/authQueries';
+import { generate2FACode, generate2FACodeNoSend, verify2FACode, generateDeviceToken, verifyDeviceToken } from '../queries/authQueries';
+import { send2FAEmail } from '../utils/email';
 
 const router = express.Router();
 
@@ -17,11 +18,14 @@ interface SignupBody {
 interface LoginBody {
   email: string;
   password: string;
+  rememberDevice?: boolean;
+  deviceToken?: string;
 }
 
 interface Verify2FABody {
   userId: string;
   code: string;
+  rememberDevice?: boolean;
 }
 
 // Signup route
@@ -79,7 +83,7 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
 // Login route - now with 2FA support
 router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberDevice, deviceToken } = req.body as LoginBody;
 
     // Find user
     const user = await User.findOne({ email });
@@ -91,6 +95,36 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // If a device token was provided, verify it to bypass 2FA
+    if (deviceToken) {
+      try {
+        const ok = await verifyDeviceToken(user._id.toString(), deviceToken);
+        if (ok) {
+          const token = jwt.sign(
+            { userId: user._id },
+            process.env.JWT_SECRET as string,
+            { expiresIn: '7d' }
+          );
+
+          return res.json({
+            message: 'Login successful (trusted device)',
+            token,
+            user: {
+              id: user._id,
+              uid: user.uid,
+              name: user.name,
+              email: user.email,
+              role: user.role
+            }
+          });
+        }
+      } catch (err) {
+        // If verification fails, continue with normal flow
+        // eslint-disable-next-line no-console
+        console.error('Device token verification error:', err?.message ?? err);
+      }
     }
 
     // Check if 2FA is enabled
@@ -112,6 +146,29 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
       { expiresIn: '7d' }
     );
 
+    // If user asked to remember this device, generate a device token
+    if (rememberDevice) {
+      try {
+        const deviceTokenPlain = await generateDeviceToken(user._id.toString());
+        return res.json({
+          message: 'Login successful',
+          token,
+          deviceToken: deviceTokenPlain,
+          user: {
+            id: user._id,
+            uid: user.uid,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        });
+      } catch (err) {
+        // If generating device token fails, still return successful login
+        // eslint-disable-next-line no-console
+        console.error('Failed to generate device token:', err?.message ?? err);
+      }
+    }
+
     return res.json({
       message: 'Login successful',
       token,
@@ -132,7 +189,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
 // Verify 2FA code
 router.post('/verify-2fa', async (req: Request<{}, {}, Verify2FABody>, res: Response) => {
   try {
-    const { userId, code } = req.body;
+    const { userId, code, rememberDevice } = req.body as Verify2FABody;
 
     if (!userId || !code) {
       return res.status(400).json({ message: 'User ID and code required' });
@@ -154,7 +211,7 @@ router.post('/verify-2fa', async (req: Request<{}, {}, Verify2FABody>, res: Resp
     // Get user details
     const user = await User.findById(userId);
 
-    return res.json({
+    const response: any = {
       message: 'Login successful',
       token,
       user: {
@@ -164,10 +221,51 @@ router.post('/verify-2fa', async (req: Request<{}, {}, Verify2FABody>, res: Resp
         email: user?.email,
         role: user?.role
       }
-    });
+    };
+
+    // If user opted to remember this device, generate a device token and return it
+    if (rememberDevice) {
+      try {
+        const deviceTokenPlain = await generateDeviceToken(userId);
+        response.deviceToken = deviceTokenPlain;
+      } catch (err) {
+        // log and continue
+        // eslint-disable-next-line no-console
+        console.error('Failed to generate device token after 2FA:', err?.message ?? err);
+      }
+    }
+
+    return res.json(response);
   } catch (error) {
     const err = error as Error;
     return res.status(500).json({ message: 'Error verifying 2FA code', error: err.message });
+  }
+});
+
+// Resend 2FA code (public) - generates a new code and attempts to send it, returns success/failure
+router.post('/resend-2fa', async (req: Request<{}, {}, { userId: string }>, res: Response) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: 'userId required' });
+
+    // Generate a fresh code but do not auto-send from the generator
+    const code = await generate2FACodeNoSend(userId);
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    try {
+      await send2FAEmail(user.email, code);
+      return res.json({ message: '2FA email resent' });
+    } catch (err) {
+      // Log and return failure to client so frontend can show a message
+      // eslint-disable-next-line no-console
+      console.error('Resend 2FA failed:', err?.message ?? err);
+      return res.status(500).json({ message: 'Failed to send 2FA email' });
+    }
+  } catch (error) {
+    const err = error as Error;
+    return res.status(500).json({ message: 'Error resending 2FA code', error: err.message });
   }
 });
 
@@ -218,3 +316,4 @@ router.post('/disable-2fa', authenticate, async (req: AuthRequest, res: Response
 });
 
 export default router;
+
