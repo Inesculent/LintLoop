@@ -345,8 +345,8 @@ export default function ProblemSolutionPage() {
               {/* Split View: Problem Description (Left) + Code Editor (Right) */}
               <div ref={containerRef} className="flex flex-col lg:flex-row gap-4">
                 {/* Left Panel: Problem Description */}
-                <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col" style={{ maxHeight: '70vh', width: leftWidth ? leftWidth : '100%' }}>
-                  <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col" style={{ height: '65vh', minHeight: '500px', width: leftWidth ? leftWidth : '100%' }}>
+                  <div className="p-6 space-y-6 flex-1">
                     {/* Problem Statement */}
                     <div>
                       <h2 className="text-lg font-semibold mb-2 text-black">Problem Description</h2>
@@ -495,16 +495,34 @@ export default function ProblemSolutionPage() {
                   onMouseDown={(e) => {
                     // only enable dragging on large screens
                     if (window.innerWidth < 1024) return;
-                    isDragging.current = true;
                     startX.current = e.clientX;
                     startWidth.current = leftWidth ?? 560;
+
+                    const onMove = (ev: MouseEvent) => {
+                      const dx = ev.clientX - startX.current;
+                      const newWidth = Math.max(320, Math.min(startWidth.current + dx, window.innerWidth - 320));
+                      setLeftWidth(newWidth);
+                    };
+
+                    const onUp = () => {
+                      try {
+                        if (pid && leftWidth) localStorage.setItem(`lintloop:editorWidth:${pid}`, leftWidth.toString());
+                      } catch (err) {
+                        // ignore
+                      }
+                      window.removeEventListener('mousemove', onMove);
+                      window.removeEventListener('mouseup', onUp);
+                    };
+
+                    window.addEventListener('mousemove', onMove);
+                    window.addEventListener('mouseup', onUp);
                     e.preventDefault();
                   }}
                   className="hidden lg:flex items-center justify-center cursor-col-resize"
                   style={{ width: 12, alignSelf: 'stretch' }}
                   title="Drag to resize"
                 >
-                  <div className="w-px h-full bg-gray-200 dark:bg-gray-600 transition-colors hover:bg-gray-300" />
+                  <div className="w-px h-full bg-gray-100 transition-colors hover:bg-gray-200" />
                 </div>
 
                 {/* Right Panel: Code Editor */}
