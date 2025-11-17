@@ -18,13 +18,13 @@ export default function ProblemDetailPage() {
   useEffect(() => {
     const fetchProblem = async () => {
       if (!pid) return; // Guard against undefined pid
-      
+
       try {
         setLoading(true);
         setError(null);
         const token = localStorage.getItem('token');
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-        
+
         const [problemResponse, submissionsResponse] = await Promise.all([
           fetch(`${apiBase}/api/problems/${pid}`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -103,7 +103,7 @@ export default function ProblemDetailPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-100">
         <Navigation />
-        
+
         <main className="container mx-auto px-4 py-8">
           {loading ? (
             <LoadingPage />
@@ -176,7 +176,7 @@ export default function ProblemDetailPage() {
                       {example.explanation && (
                         <div className="mt-2">
                           <p className="text-sm font-medium text-black">Explanation:</p>
-              <p className="mt-1 text-sm text-black">{example.explanation}</p>
+                          <p className="mt-1 text-sm text-black">{example.explanation}</p>
                         </div>
                       )}
                     </div>
@@ -234,10 +234,10 @@ export default function ProblemDetailPage() {
               {/* Hints */}
               {problem.hints.length > 0 && (
                 <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Hints</h2>
+                  <h2 className="text-lg font-semibold text-black mb-4">Hints</h2>
                   <div className="space-y-4">
                     {problem.hints.map((hint, index) => (
-                      <div 
+                      <div
                         key={index}
                         className="p-4 bg-blue-50 rounded-lg border border-blue-200"
                       >

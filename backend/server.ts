@@ -21,7 +21,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
+  origin: process.env.NODE_ENV === 'production'
     ? ['https://www.inesculent.dev', 'https://inesculent.dev']
     : 'http://localhost:3000',
   credentials: true
@@ -30,7 +30,7 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
-  res.json({ 
+  res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
@@ -77,7 +77,7 @@ verifyTransport().catch(err => {
 
 // Basic route
 app.get('/', (_req: Request, res: Response) => {
-  res.json({ 
+  res.json({
     message: 'LinterLoop API',
     description: 'Code practice platform with automated style and performance grading',
     endpoints: ['/health', '/api/auth/signup', '/api/auth/login', '/api/problems', '/api/submissions', '/api/execute'],

@@ -29,7 +29,7 @@ export default function ProblemSolutionPage() {
         setError(null);
         const token = localStorage.getItem('token');
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-        
+
         // Fetch both problem data and last submission if any
         // Fetch problem data first
         const problemResponse = await fetch(`${apiBase}/api/problems/${pid}`, {
@@ -56,13 +56,31 @@ export default function ProblemSolutionPage() {
 
         const problemData: ApiProblem = await problemResponse.json();
 
-        // If there's a previous submission, use that code, otherwise use starter code
-        let initialCode = problemData.starterCode?.[language] || '';
+        // Determine initial code for the current language.
+        // Priority: persisted localStorage code -> last submission -> starter code -> empty
+        const storageKey = (p: string, lang: string) => `lintloop:code:${p}:${lang}`;
+        let initialCode = '';
+
         if (lastSubmissionResponse.ok) {
           const lastSubmission = await lastSubmissionResponse.json();
           if (lastSubmission && lastSubmission.code) {
             initialCode = lastSubmission.code;
           }
+        }
+
+        const starter = problemData.starterCode?.[language] || '';
+
+        // Check localStorage for an existing saved draft for this problem+language
+        try {
+          const saved = localStorage.getItem(storageKey(problemData.pid.toString(), language));
+          if (saved !== null) {
+            initialCode = saved;
+          } else if (!initialCode) {
+            initialCode = starter;
+          }
+        } catch (e) {
+          // ignore storage errors and fall back to submission/starter
+          if (!initialCode) initialCode = starter;
         }
 
         setProblem(problemData);
@@ -78,13 +96,34 @@ export default function ProblemSolutionPage() {
     if (pid) {
       fetchProblem();
     }
-  }, [pid, language]);
+  }, [pid]);
+
+  const storageKey = (p: string, lang: string) => `lintloop:code:${p}:${lang}`;
 
   const handleLanguageChange = (newLanguage: Language) => {
-    setLanguage(newLanguage);
-    if (problem && problem.starterCode) {
-      setCode(problem.starterCode[newLanguage] || '');
+    if (!problem) {
+      setLanguage(newLanguage);
+      return;
     }
+
+    // Save current code to storage under current language
+    try {
+      localStorage.setItem(storageKey(problem.pid.toString(), language), code);
+    } catch (e) {
+      // ignore storage errors
+    }
+
+    // Load code for the new language from storage, or fall back to starter code
+    let nextCode = problem.starterCode?.[newLanguage] || '';
+    try {
+      const saved = localStorage.getItem(storageKey(problem.pid.toString(), newLanguage));
+      if (saved !== null) nextCode = saved;
+    } catch (e) {
+      // ignore
+    }
+
+    setLanguage(newLanguage);
+    setCode(nextCode);
   };
 
   const handleSubmit = async () => {
@@ -182,7 +221,7 @@ export default function ProblemSolutionPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-100">
         <Navigation />
-        
+
         <main className="container mx-auto px-4 py-8">
           {loading ? (
             <LoadingPage />
@@ -234,7 +273,7 @@ export default function ProblemSolutionPage() {
                   <div className="p-6 space-y-6 overflow-y-auto flex-1">
                     {/* Problem Statement */}
                     <div>
-                      <h2 className="text-lg font-semibold mb-2">Problem Description</h2>
+                      <h2 className="text-lg font-semibold mb-2 text-black">Problem Description</h2>
                       <div className="prose prose-sm max-w-none text-black">
                         {problem.problemStatement}
                       </div>
@@ -243,27 +282,27 @@ export default function ProblemSolutionPage() {
                     {/* Examples */}
                     {problem.examples && problem.examples.length > 0 && (
                       <div>
-                        <h2 className="text-lg font-semibold mb-2">Examples</h2>
+                        <h2 className="text-lg font-semibold mb-2 text-black">Examples</h2>
                         {problem.examples.map((example, idx) => (
-                            <div key={idx} className="mb-4 p-3 bg-gray-50 rounded">
-                              <p className="font-medium text-sm text-black">Example {idx + 1}:</p>
-                              <div className="mt-2 space-y-1 text-sm">
-                                <div>
-                                  <span className="font-medium text-black">Input:</span>
-                                  <pre className="inline ml-2 font-mono text-black">{example.input}</pre>
-                                </div>
-                                <div>
-                                  <span className="font-medium text-black">Output:</span>
-                                  <pre className="inline ml-2 font-mono text-black">{example.output}</pre>
-                                </div>
-                                {example.explanation && (
-                                  <div>
-                                    <span className="font-medium text-black">Explanation:</span>
-                                    <span className="ml-2 text-black">{example.explanation}</span>
-                                  </div>
-                                )}
+                          <div key={idx} className="mb-4 p-3 bg-gray-50 rounded">
+                            <p className="font-medium text-sm text-black">Example {idx + 1}:</p>
+                            <div className="mt-2 space-y-1 text-sm">
+                              <div>
+                                <span className="font-medium text-black">Input:</span>
+                                <pre className="inline ml-2 font-mono text-black">{example.input}</pre>
                               </div>
+                              <div>
+                                <span className="font-medium text-black">Output:</span>
+                                <pre className="inline ml-2 font-mono text-black">{example.output}</pre>
+                              </div>
+                              {example.explanation && (
+                                <div>
+                                  <span className="font-medium text-black">Explanation:</span>
+                                  <span className="ml-2 text-black">{example.explanation}</span>
+                                </div>
+                              )}
                             </div>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -300,7 +339,7 @@ export default function ProblemSolutionPage() {
                     {/* Custom Test Cases */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-lg font-semibold">Custom Test Cases</h2>
+                        <h2 className="text-lg font-semibold text-black">Custom Test Cases</h2>
                         <button
                           onClick={() => setShowTestCaseInput(!showTestCaseInput)}
                           className="text-sm text-blue-600 hover:text-blue-800 font-medium"
@@ -308,13 +347,13 @@ export default function ProblemSolutionPage() {
                           {showTestCaseInput ? '- Hide' : '+ Add Custom Test'}
                         </button>
                       </div>
-                      
+
                       {showTestCaseInput && (
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           <p className="text-sm text-gray-600 mb-2">
                             Add custom test inputs to test your code. Your code's output will be shown in the results.
                           </p>
-                          
+
                           {customTestCases.map((testCase, idx) => (
                             <div key={idx} className="flex gap-2 items-start bg-white p-3 rounded border">
                               <div className="flex-1">
@@ -346,7 +385,7 @@ export default function ProblemSolutionPage() {
                               </button>
                             </div>
                           ))}
-                          
+
                           <div className="flex gap-2">
                             <button
                               onClick={() => setCustomTestCases([...customTestCases, { input: '' }])}
@@ -363,7 +402,7 @@ export default function ProblemSolutionPage() {
                               </button>
                             )}
                           </div>
-                          
+
                           {customTestCases.length > 0 && (
                             <p className="text-xs text-green-600 mt-2">
                               ✓ Will run your code with {customTestCases.length} custom input(s)
@@ -382,7 +421,17 @@ export default function ProblemSolutionPage() {
                       height="100%"
                       language={language}
                       value={code}
-                      onChange={(value) => setCode(value || '')}
+                      onChange={(value) => {
+                        const v = value || '';
+                        setCode(v);
+                        try {
+                          if (problem) {
+                            localStorage.setItem(storageKey(problem.pid.toString(), language), v);
+                          }
+                        } catch (e) {
+                          // ignore storage errors
+                        }
+                      }}
                       theme="vs-dark"
                       options={{
                         minimap: { enabled: false },
