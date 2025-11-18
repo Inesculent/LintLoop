@@ -119,6 +119,68 @@ LintLoop/
 └── README.md
 ```
 
+## Diagrams
+
+```mermaid
+graph TB
+    Start([User Submits Code]) --> Auth{JWT Valid?}
+    Auth -->|No| AuthFail[401 Unauthorized]
+    Auth -->|Yes| Extract[Extract Request Data]
+    
+    Extract --> Query[Query MongoDB for Problem]
+    Query --> Found{Problem Found?}
+    Found -->|No| NotFound[404 Not Found]
+    Found -->|Yes| GetData[Get Test Cases and Limits]
+    
+    GetData --> GenHarness[Generate Test Harness]
+    GenHarness --> LangCheck{Language?}
+    
+    LangCheck -->|Python| PyHarness[Python Harness Generator]
+    LangCheck -->|Java| JavaHarness[Java Harness Generator]
+    
+    PyHarness --> Docker[Execute in Docker]
+    JavaHarness --> Docker
+    
+    Docker --> Security[Apply Security Constraints]
+    Security --> Execute[Run Code with Timeout]
+    
+    Execute --> Result{Execution Status}
+    Result -->|Timeout| TLE[Time Limit Exceeded]
+    Result -->|Memory Error| MLE[Memory Limit Exceeded]
+    Result -->|Runtime Error| RE[Capture Error]
+    Result -->|Success| Parse[Parse Results]
+    
+    TLE --> Score[Calculate Score]
+    MLE --> Score
+    RE --> Score
+    Parse --> Score
+    
+    Score --> AllPass{All Tests Passed?}
+    AllPass -->|No| Fail[Score = 0, Status = FAILED]
+    AllPass -->|Yes| Quality[Calculate Quality Metrics]
+    
+    Quality --> Breakdown[Correctness 40% + Performance 20% + Style 20% + Readability 20%]
+    Breakdown --> FinalScore[Calculate Total Score]
+    Fail --> FinalScore
+    
+    FinalScore --> Save[Save Submission to MongoDB]
+    Save --> Response[Return Grading Result]
+    Response --> End([Complete])
+    
+    AuthFail --> End
+    NotFound --> End
+    
+    style Start fill:#e1f5ff
+    style End fill:#e1f5ff
+    style Auth fill:#fff3cd
+    style Found fill:#fff3cd
+    style AllPass fill:#fff3cd
+    style Docker fill:#f8d7da
+    style Security fill:#f8d7da
+    style FinalScore fill:#d4edda
+    style Save fill:#d4edda
+```
+
 ## License
 
 MIT
