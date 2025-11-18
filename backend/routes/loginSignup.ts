@@ -35,9 +35,34 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
     const { name, email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).select('+verificationToken +verificationTokenExpiry');
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      // If user exists but email is not verified, resend verification email
+      if (!existingUser.emailVerified) {
+        // Generate new verification token
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        existingUser.verificationToken = verificationToken;
+        existingUser.verificationTokenExpiry = verificationTokenExpiry;
+        await existingUser.save();
+
+        // Send verification email
+        try {
+          await sendVerificationEmail(email, verificationToken);
+          console.log(`Verification email resent to existing unverified user: ${email}`);
+        } catch (emailError) {
+          console.error('Failed to send verification email:', emailError);
+        }
+
+        return res.status(200).json({
+          message: 'An account with this email already exists but is not verified. We have sent a new verification email to your inbox.',
+          requiresVerification: true
+        });
+      }
+
+      // User exists and is verified
+      return res.status(400).json({ message: 'User already exists. Please log in.' });
     }
 
     // Hash password
