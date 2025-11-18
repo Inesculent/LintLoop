@@ -1,6 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import authRoutes from '../../routes/loginSignup';
+import User from '../../models/Users';
 
 // Mock the database connection
 jest.mock('mongoose', () => ({
@@ -12,20 +13,45 @@ jest.mock('mongoose', () => ({
   }
 }));
 
-// Mock the User model
-jest.mock('../../models/Users', () => ({
-  findOne: jest.fn(),
-  findById: jest.fn(),
-  countDocuments: jest.fn(),
-  default: jest.fn().mockImplementation(() => ({
-    save: jest.fn()
-  }))
+// Mock bcrypt
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn().mockResolvedValue('hashed-password'),
+  compare: jest.fn().mockResolvedValue(false)
 }));
+
+// Mock the User model
+jest.mock('../../models/Users', () => {
+  const mockUserConstructor: any = jest.fn().mockImplementation((userData) => {
+    return {
+      ...userData,
+      _id: 'mock-id-123',
+      save: jest.fn().mockResolvedValue({
+        ...userData,
+        _id: 'mock-id-123'
+      })
+    };
+  });
+  
+  // Add static methods
+  mockUserConstructor.findOne = jest.fn();
+  mockUserConstructor.countDocuments = jest.fn();
+  mockUserConstructor.findById = jest.fn();
+  
+  return {
+    __esModule: true,
+    default: mockUserConstructor
+  };
+});
 
 // Mock email service
 jest.mock('../../utils/email', () => ({
-  sendVerificationEmail: jest.fn(),
-  send2FAEmail: jest.fn()
+  sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+  send2FAEmail: jest.fn().mockResolvedValue(undefined)
+}));
+
+// Mock admin list utility
+jest.mock('../../utils/adminList', () => ({
+  getRoleForEmail: jest.fn().mockReturnValue('user')
 }));
 
 // Create a test app
@@ -33,9 +59,30 @@ const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 
+const mockUser = User as jest.Mocked<typeof User>;
+
 describe('Auth Routes', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Default mocks for User model methods
+    mockUser.countDocuments = jest.fn().mockResolvedValue(0);
+    mockUser.findOne = jest.fn().mockReturnValue({
+      select: jest.fn().mockResolvedValue(null)
+    }) as any;
+  });
+
   describe('POST /api/auth/signup', () => {
     it('should return 400 if user already exists and is verified', async () => {
+      // Mock findOne to return an existing verified user
+      mockUser.findOne = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue({
+          _id: '123',
+          email: 'existing@example.com',
+          emailVerified: true
+        })
+      }) as any;
+
       const response = await request(app)
         .post('/api/auth/signup')
         .send({
@@ -44,12 +91,16 @@ describe('Auth Routes', () => {
           password: 'password123'
         });
 
-      // This test assumes you have existing users in your test DB
-      // You might need to mock the database or seed test data
-      expect([200, 201, 400]).toContain(response.status);
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('already exists');
     });
 
     it('should validate required fields', async () => {
+      // Mock no existing user
+      mockUser.findOne = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue(null)
+      }) as any;
+
       const response = await request(app)
         .post('/api/auth/signup')
         .send({
@@ -57,12 +108,18 @@ describe('Auth Routes', () => {
           // Missing email and password
         });
 
-      expect(response.status).toBe(500); // Will fail validation
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBeDefined();
     });
   });
 
   describe('POST /api/auth/login', () => {
     it('should return 401 for invalid credentials', async () => {
+      // Mock no user found
+      mockUser.findOne = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue(null)
+      }) as any;
+
       const response = await request(app)
         .post('/api/auth/login')
         .send({
@@ -88,6 +145,11 @@ describe('Auth Routes', () => {
 
   describe('GET /api/auth/verify-email/:token', () => {
     it('should return 400 for invalid token', async () => {
+      // Mock no user found with this token
+      mockUser.findOne = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue(null)
+      }) as any;
+
       const response = await request(app)
         .get('/api/auth/verify-email/invalid-token-12345');
 
@@ -107,6 +169,11 @@ describe('Auth Routes', () => {
     });
 
     it('should return 404 for non-existent user', async () => {
+      // Mock no user found
+      mockUser.findOne = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue(null)
+      }) as any;
+
       const response = await request(app)
         .post('/api/auth/resend-verification')
         .send({
