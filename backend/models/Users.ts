@@ -57,7 +57,18 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String,
+    select: false  // Don't return this in queries by default
+  },
+  verificationTokenExpiry: {
+    type: Date,
+    select: false  // Don't return this in queries by default
+  },
   twoFactorEnabled: {
     type: Boolean,
     default: false
