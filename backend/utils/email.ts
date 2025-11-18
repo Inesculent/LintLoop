@@ -1,12 +1,16 @@
 import { Resend } from 'resend';
 
-// Initialize Resend only if API key is available
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-
-export const send2FAEmail = async (email: string, code: string): Promise<void> => {
-  if (!resend) {
+// Lazy-load Resend instance
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
     throw new Error('Email service not configured. Please set RESEND_API_KEY in environment variables.');
   }
+  return new Resend(apiKey);
+}
+
+export const send2FAEmail = async (email: string, code: string): Promise<void> => {
+  const resend = getResendClient();
   
   await resend.emails.send({
     from: process.env.EMAIL_FROM || 'LintLoop <onboarding@resend.dev>',
@@ -21,9 +25,7 @@ export const send2FAEmail = async (email: string, code: string): Promise<void> =
 };
 
 export const sendVerificationEmail = async (email: string, token: string): Promise<void> => {
-  if (!resend) {
-    throw new Error('Email service not configured. Please set RESEND_API_KEY in environment variables.');
-  }
+  const resend = getResendClient();
   
   const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
   
