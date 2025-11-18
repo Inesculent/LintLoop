@@ -42,7 +42,12 @@ export default function SignInPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.message || 'Login failed');
+        // Check if it's an email verification issue
+        if (data.requiresVerification) {
+          setError(data?.message || 'Please verify your email before logging in. Check your inbox for the verification link.');
+        } else {
+          setError(data?.message || 'Login failed');
+        }
         setLoading(false);
         return;
       }

@@ -36,10 +36,10 @@ export default function SignUpPage() {
         setLoading(false);
         return;
       }
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-      router.push('/dashboard');
+      
+      // Show success message and redirect to a "check your email" page or signin
+      alert(data.message || 'Account created! Please check your email to verify your account.');
+      router.push('/signin');
     } catch (err) {
       setError((err as Error).message || 'Network error');
     } finally {
