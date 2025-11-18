@@ -5,7 +5,51 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: |
+          backend/package-lock.json
+          frontend/package-lock.json
+    
+    - name: Test Backend
+      run: |
+        cd backend
+        npm ci
+        npm test
+      env:
+        NODE_ENV: test
+        JWT_SECRET: test-secret-key-for-ci
+        MONGODB_URI: mongodb://localhost:27017/linterloop-test
+        PORT: 5001
+        DOCKER_ENABLED: false
+        RESEND_API_KEY: re_test_key
+        EMAIL_FROM: Test <test@test.com>
+        FRONTEND_URL: http://localhost:3000
+    
+    - name: Test Frontend (if tests exist)
+      run: |
+        cd frontend
+        npm ci
+        # Only run tests if test script exists
+        if grep -q '"test"' package.json; then
+          npm test
+        else
+          echo "No frontend tests configured yet"
+        fi
+      continue-on-error: true
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     
     steps:
