@@ -271,6 +271,7 @@ export default function ProblemSolutionPage() {
         failedTestCase: submission?.failedTestCase ?? null,
         score: submission?.score ?? grading?.totalScore,
         scoreBreakdown: submission?.scoreBreakdown ?? grading?.breakdown,
+        isSubmission: true,
         feedback: submission?.feedback ?? grading?.feedback
       };
 
@@ -384,6 +385,7 @@ export default function ProblemSolutionPage() {
         failedTestCase: failed ? { input: failed.input, expected: failed.expected, actual: failed.actual } : undefined,
         score: output.score,
         scoreBreakdown: output.scoreBreakdown,
+        isSubmission: false,
         feedback: output.feedback
       };
 
@@ -769,15 +771,17 @@ export default function ProblemSolutionPage() {
                           <p className="text-lg font-bold">{result.memoryUsed} MB</p>
                         </div>
                       )}
-                      <div>
-                        <p className="text-sm text-gray-500">Overall Score</p>
-                        <p className="text-lg font-bold text-blue-600">{result.score ?? 0}%</p>
-                      </div>
+                      {result.isSubmission && (
+                        <div>
+                          <p className="text-sm text-gray-500">Overall Score</p>
+                          <p className="text-lg font-bold text-blue-600">{result.score ?? 0}%</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Score Breakdown */}
-                  {result.scoreBreakdown && (
+                  {result.isSubmission && result.scoreBreakdown && (
                     <div className="bg-blue-50 rounded-lg p-4 mb-4">
                       <h3 className="font-semibold mb-3">Score Breakdown</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
