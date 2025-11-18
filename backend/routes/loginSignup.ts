@@ -34,6 +34,11 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
   try {
     const { name, email, password } = req.body;
 
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ email }).select('+verificationToken +verificationTokenExpiry');
     if (existingUser) {
