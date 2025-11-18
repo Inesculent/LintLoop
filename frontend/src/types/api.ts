@@ -118,6 +118,11 @@ export interface ExecutionResult {
   failedTestCase?: FailedTestCase;
   score?: number;
   scoreBreakdown?: ScoreBreakdown;
+  // When true this result came from a full submission (Submit),
+  // as opposed to an ad-hoc run/test (Run Code). Frontend uses
+  // this to decide which UI pieces (overall score / breakdown)
+  // to display. Optional for backward compatibility.
+  isSubmission?: boolean;
   feedback?: string[];
 }
 

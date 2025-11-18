@@ -19,6 +19,7 @@ export default function ProblemSolutionPage() {
   const [code, setCode] = useState('');
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<'run' | 'submit' | 'none'>('none');
   const [customTestCases, setCustomTestCases] = useState<Array<{ input: any }>>([]);
   const [showTestCaseInput, setShowTestCaseInput] = useState(false);
   // Editor resizing state
@@ -129,6 +130,8 @@ export default function ProblemSolutionPage() {
         // Only set if parsed pid matches current pid (safety) and we don't already have a result
         if (parsed && parsed.pid && parsed.pid.toString() === pid.toString()) {
           setResult(parsed as ExecutionResult);
+          // reflect persisted source so UI shows appropriate sections
+          setLastAction(parsed.isSubmission ? 'submit' : 'run');
           // scroll persisted result into view so user sees it immediately
           setTimeout(() => {
             try {
@@ -271,8 +274,12 @@ export default function ProblemSolutionPage() {
         failedTestCase: submission?.failedTestCase ?? null,
         score: submission?.score ?? grading?.totalScore,
         scoreBreakdown: submission?.scoreBreakdown ?? grading?.breakdown,
+        isSubmission: true,
         feedback: submission?.feedback ?? grading?.feedback
       };
+
+      // mark that this result came from an explicit Submit action
+      setLastAction('submit');
 
       // Fill sensible defaults for score/scoreBreakdown when backend didn't provide them
       try {
@@ -384,8 +391,12 @@ export default function ProblemSolutionPage() {
         failedTestCase: failed ? { input: failed.input, expected: failed.expected, actual: failed.actual } : undefined,
         score: output.score,
         scoreBreakdown: output.scoreBreakdown,
+        isSubmission: false,
         feedback: output.feedback
       };
+
+      // mark that this result came from an explicit Run/Test action
+      setLastAction('run');
 
       // Fill sensible defaults for score/scoreBreakdown when backend didn't provide them
       try {
@@ -769,15 +780,17 @@ export default function ProblemSolutionPage() {
                           <p className="text-lg font-bold">{result.memoryUsed} MB</p>
                         </div>
                       )}
-                      <div>
-                        <p className="text-sm text-gray-500">Overall Score</p>
-                        <p className="text-lg font-bold text-blue-600">{result.score ?? 0}%</p>
-                      </div>
+                      {(lastAction === 'submit' || result.isSubmission) && (
+                        <div>
+                          <p className="text-sm text-gray-500">Overall Score</p>
+                          <p className="text-lg font-bold text-blue-600">{result.score ?? 0}%</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Score Breakdown */}
-                  {result.scoreBreakdown && (
+                  {(lastAction === 'submit' || result.isSubmission) && result.scoreBreakdown && (
                     <div className="bg-blue-50 rounded-lg p-4 mb-4">
                       <h3 className="font-semibold mb-3">Score Breakdown</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
