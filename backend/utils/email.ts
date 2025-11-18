@@ -1,8 +1,13 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend only if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export const send2FAEmail = async (email: string, code: string): Promise<void> => {
+  if (!resend) {
+    throw new Error('Email service not configured. Please set RESEND_API_KEY in environment variables.');
+  }
+  
   await resend.emails.send({
     from: process.env.EMAIL_FROM || 'LintLoop <onboarding@resend.dev>',
     to: email,
@@ -16,6 +21,10 @@ export const send2FAEmail = async (email: string, code: string): Promise<void> =
 };
 
 export const sendVerificationEmail = async (email: string, token: string): Promise<void> => {
+  if (!resend) {
+    throw new Error('Email service not configured. Please set RESEND_API_KEY in environment variables.');
+  }
+  
   const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
   
   await resend.emails.send({
