@@ -78,8 +78,7 @@ jobs:
             echo "Building Next.js app..."
             npm run build
             
-            echo "Removing dev dependencies..."
-            npm prune --production
+            # Don't prune dependencies - Next.js needs them at runtime
             
             echo "Restarting frontend with PM2..."
             pm2 restart linterloop-frontend || pm2 start npm --name linterloop-frontend -- start
