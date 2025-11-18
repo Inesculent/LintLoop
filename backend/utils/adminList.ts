@@ -10,7 +10,9 @@ let adminEmails: Set<string>;
  */
 function loadAdminList(): Set<string> {
   try {
-    const adminsPath = path.join(__dirname, '../config/admins.json');
+    // In production, __dirname is backend/dist/utils, so we need to go up to backend/config
+    // In development, __dirname is backend/utils, so we need to go to backend/config
+    const adminsPath = path.join(__dirname, '../../config/admins.json');
     const adminsData = JSON.parse(fs.readFileSync(adminsPath, 'utf-8'));
     const emails = new Set<string>(adminsData.adminEmails.map((email: string) => email.toLowerCase()));
     console.log(`Loaded ${emails.size} admin email(s) from configuration`);

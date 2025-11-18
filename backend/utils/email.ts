@@ -1,16 +1,10 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-export const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const send2FAEmail = async (email: string, code: string): Promise<void> => {
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'LintLoop <onboarding@resend.dev>',
     to: email,
     subject: 'Your 2FA Code',
     text: `Your verification code is: ${code}`,
@@ -24,8 +18,8 @@ export const send2FAEmail = async (email: string, code: string): Promise<void> =
 export const sendVerificationEmail = async (email: string, token: string): Promise<void> => {
   const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
   
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'LintLoop <onboarding@resend.dev>',
     to: email,
     subject: 'Verify Your Email - LintLoop',
     text: `Please verify your email by clicking this link: ${verificationUrl}`,
@@ -46,15 +40,17 @@ export const sendVerificationEmail = async (email: string, token: string): Promi
   });
 };
 
-// Verify transporter configuration (useful at server startup)
+// Verify Resend configuration (useful at server startup)
 export const verifyTransport = async (): Promise<void> => {
   try {
-    await transporter.verify();
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not configured');
+    }
     // eslint-disable-next-line no-console
-    console.log('Email transporter verified');
+    console.log('Resend email service initialized');
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('Email transporter verification failed:', err instanceof Error ? err.message : err);
+    console.error('Email service initialization failed:', err instanceof Error ? err.message : err);
     throw err;
   }
 };
