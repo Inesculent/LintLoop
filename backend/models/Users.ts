@@ -31,8 +31,9 @@ const userSchema = new mongoose.Schema({
   },
   username: {
     type: String,
-    required: true,
+    required: false,  // Optional to support existing users
     unique: true,
+    sparse: true,     // Only enforce uniqueness on non-null values
     maxlength: 35
   },
   bio: {
@@ -100,6 +101,16 @@ const userSchema = new mongoose.Schema({
     lastUsed: { type: Date }
   }]
 });
+
+// Set username to email if not provided (for existing users)
+userSchema.pre('save', function (next) {
+  if (!this.username) {
+    this.username = this.email;
+  }
+  next();
+});
+
+// Note: For findOneAndUpdate operations, username defaults are handled in the signup route
 
 // Cascade delete: Remove all submissions when a user is deleted
 userSchema.pre('findOneAndDelete', async function (next) {
