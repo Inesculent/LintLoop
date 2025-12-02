@@ -12,6 +12,7 @@ const router = express.Router();
 
 interface SignupBody {
   name: string;
+  username: string;
   email: string;
   password: string;
 }
@@ -32,16 +33,27 @@ interface Verify2FABody {
 // Signup route
 router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, username, email, password } = req.body;
 
     // Validate required fields
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required' });
+    if (!name || !username || !email || !password) {
+      return res.status(400).json({ message: 'Name, username, email, and password are required' });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email }).select('+verificationToken +verificationTokenExpiry');
+    // Validate username length
+    if (username.length > 35) {
+      return res.status(400).json({ message: 'Username must be 35 characters or less' });
+    }
+
+    // Check if user already exists (by email or username)
+    const existingUser = await User.findOne({ 
+      $or: [{ email }, { username }] 
+    }).select('+verificationToken +verificationTokenExpiry');
     if (existingUser) {
+      // Check if it's a username conflict
+      if (existingUser.username === username && existingUser.email !== email) {
+        return res.status(400).json({ message: 'Username already taken. Please choose another.' });
+      }
       // If user exists but email is not verified, resend verification email
       if (!existingUser.emailVerified) {
         // Generate new verification token
@@ -88,6 +100,7 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
     const user: IUser = new User({
       uid: nextUid,
       name,
+      username,
       email,
       password: hashedPassword,
       role: role,
@@ -112,6 +125,7 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
         id: user._id,
         uid: user.uid,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
         emailVerified: false
@@ -174,6 +188,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
               id: user._id,
               uid: user.uid,
               name: user.name,
+              username: user.username,
               email: user.email,
               role: user.role
             }
@@ -217,6 +232,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
             id: user._id,
             uid: user.uid,
             name: user.name,
+            username: user.username,
             email: user.email,
             role: user.role
           }
@@ -235,6 +251,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
         id: user._id,
         uid: user.uid,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role
       }
@@ -287,6 +304,7 @@ router.post('/verify-2fa', async (req: Request<{}, {}, Verify2FABody>, res: Resp
         id: user?._id,
         uid: user?.uid,
         name: user?.name,
+        username: user?.username,
         email: user?.email,
         role: user?.role
       }
