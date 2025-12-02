@@ -151,6 +151,11 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
       return res.status(400).json({ message: 'Please provide either email or username, not both' });
     }
 
+    // Validate that password is provided
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+
     // Find user by email or username
     const user = await User.findOne(
       email ? { email } : { username }
