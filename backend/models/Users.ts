@@ -4,6 +4,8 @@ export interface IUser extends Document {
   _id: Types.ObjectId;
   uid: number;
   name: string;
+  username: string;
+  bio?: string;
   email: string;
   password: string;
   problems_solved: number;
@@ -21,12 +23,21 @@ export interface IUser extends Document {
     lastUsed?: Date;
   }>;
 }
-
 const userSchema = new mongoose.Schema({
   uid: {
     type: Number,
     required: true,
     unique: true
+  },
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    maxlength: 35
+  },
+  bio: {
+    type: String,
+    required: false
   },
   role: {
     type: String,

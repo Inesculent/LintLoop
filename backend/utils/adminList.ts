@@ -10,9 +10,14 @@ let adminEmails: Set<string>;
  */
 function loadAdminList(): Set<string> {
   try {
-    // In production, __dirname is backend/dist/utils, so we need to go up to backend/config
-    // In development, __dirname is backend/utils, so we need to go to backend/config
-    const adminsPath = path.join(__dirname, '../../backend/config/admins.json');
+    // In production, __dirname is backend/dist/utils, need ../../config/admins.json
+    // In development, __dirname is backend/utils, need ../config/admins.json
+    // Check if we're in dist folder (production/compiled) or source folder (development)
+    const isCompiledCode = __dirname.includes('dist');
+    const adminsPath = isCompiledCode
+      ? path.join(__dirname, '../../config/admins.json')  // From dist/utils to config
+      : path.join(__dirname, '../config/admins.json');     // From utils to config
+    
     const adminsData = JSON.parse(fs.readFileSync(adminsPath, 'utf-8'));
     const emails = new Set<string>(adminsData.adminEmails.map((email: string) => email.toLowerCase()));
     console.log(`Loaded ${emails.size} admin email(s) from configuration`);

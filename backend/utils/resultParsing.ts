@@ -2,6 +2,7 @@ import Docker from 'dockerode';
 import { ExecutionResult, GradingResult, ScoreBreakdown } from '../types';
 import * as tar from 'tar-stream';
 
+
 const docker = new Docker();
 
 // Interface for the test harness output structure
@@ -353,6 +354,7 @@ const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__))$
           });
         }
         
+        // Account for negative deductions
         const score = Math.max(0, Math.min(10, 10 - deduction));
         
         return {
@@ -635,7 +637,7 @@ function calculateReadabilityScore(
   score = Math.max(0, Math.min(100, score));
   
   if (score >= 80) {
-    feedback.push(`Readable code! ${issues.filter(i => !i.includes('No')).slice(0, 2).join(', ') || 'Well structured'}`);
+    feedback.push(`Good readability. ${issues.filter(i => !i.includes('No')).slice(0, 2).join(', ') || 'Well structured'}`);
   } else if (score >= 60) {
     feedback.push(`Decent readability. ${issues.filter(i => i.includes('too') || i.includes('Deep') || i.includes('exceed')).slice(0, 2).join(', ')}`);
   } else {

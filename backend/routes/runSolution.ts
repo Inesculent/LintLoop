@@ -77,13 +77,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
               ...executionResult,
               output: parsed
             };
-            console.log('✅ Parsed Java execution output, type now:', typeof executionResult.output);
+            console.log('Parsed Java execution output, type now:', typeof executionResult.output);
           } catch (e) {
-            console.error('❌ Failed to parse Java execution output:', e);
+            console.error('Failed to parse Java execution output:', e);
             // Keep as string if not valid JSON
           }
         } else {
-          console.log('ℹ️ Java output already parsed');
+          console.log('Java output already parsed');
         }
       }
 
@@ -141,13 +141,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
               ...executionResult,
               output: parsed
             };
-            console.log('✅ Parsed Python execution output, type now:', typeof executionResult.output);
+            console.log('Parsed Python execution output, type now:', typeof executionResult.output);
           } catch (e) {
-            console.error('❌ Failed to parse Python execution output:', e);
+            console.error('Failed to parse Python execution output:', e);
             // Keep as string if not valid JSON
           }
         } else {
-          console.log('ℹ️ Python output already parsed');
+          console.log('Python output already parsed');
         }
       }
 

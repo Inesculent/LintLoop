@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 import executeRoutes = require('./routes/execute');
 import runSolutionRoutes = require('./routes/runSolution');
 import runTestRoutes = require('./routes/runTest');
-import testRoutes = require('./routes/test');
 import problemRoutes = require('./routes/problems');
 import submissionRoutes = require('./routes/submissions');
 import authRoutes from './routes/loginSignup';
@@ -92,7 +91,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/execute', authenticate, executeRoutes);
 app.use('/api/run-solution', authenticate, runSolutionRoutes);
 app.use('/api/run-test', authenticate, runTestRoutes);
-app.use('/api/test', authenticate, testRoutes);
 app.use('/api/problems', authenticate, problemRoutes);
 app.use('/api/submissions', authenticate, submissionRoutes);
 
