@@ -16,6 +16,11 @@ export const getUserByUid = async (uid: number) =>{
   return await User.findOne({ uid });
 };
 
+//find user by username
+export const getUserByUsername = async (username: string) => {
+  return await User.findOne({ username });
+};
+
 
 export const createUser = async (userData: {
   uid: number;

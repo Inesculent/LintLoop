@@ -45,6 +45,14 @@ router.patch('/:uid', authenticate, async (req: AuthRequest, res: Response) => {
       // Don't allow updating sensitive fields
       const { password, email, role, uid: _, ...allowedUpdates } = req.body;
       
+      // If updating username, check if it's already taken
+      if (allowedUpdates.username) {
+        const existingUser = await userQueries.getUserByUsername(allowedUpdates.username);
+        if (existingUser && existingUser.uid !== uid) {
+          return res.status(400).json({ error: 'Username already taken' });
+        }
+      }
+      
       const updatedUser = await userQueries.updateUser(uid, allowedUpdates);
       
       if (!updatedUser) {

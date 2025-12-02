@@ -107,11 +107,31 @@ describe('Auth Routes', () => {
         .post('/api/auth/signup')
         .send({
           name: 'Test User'
-          // Missing username, email and password
+          // Missing email and password (username is optional, defaults to email)
         });
 
       expect(response.status).toBe(400);
       expect(response.body.message).toBeDefined();
+    });
+
+    it('should use email as default username if username not provided', async () => {
+      // Mock no existing user
+      mockUser.findOne = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue(null)
+      }) as any;
+      mockUser.countDocuments = jest.fn().mockResolvedValue(0);
+
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({
+          name: 'Test User',
+          email: 'test@example.com',
+          password: 'password123'
+          // No username provided, should default to email
+        });
+
+      // Should successfully create user (or at least pass validation)
+      expect([201, 200]).toContain(response.status);
     });
 
     it('should return 400 if username is already taken', async () => {

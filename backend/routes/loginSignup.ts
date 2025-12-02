@@ -12,7 +12,7 @@ const router = express.Router();
 
 interface SignupBody {
   name: string;
-  username: string;
+  username?: string;  // Optional, will default to email if not provided
   email: string;
   password: string;
 }
@@ -34,11 +34,16 @@ interface Verify2FABody {
 // Signup route
 router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) => {
   try {
-    const { name, username, email, password } = req.body;
+    let { name, username, email, password } = req.body;
 
     // Validate required fields
-    if (!name || !username || !email || !password) {
-      return res.status(400).json({ message: 'Name, username, email, and password are required' });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
+    // Use email as default username if not provided
+    if (!username) {
+      username = email;
     }
 
     // Validate username length
