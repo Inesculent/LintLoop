@@ -78,6 +78,7 @@ describe('Auth Routes', () => {
       mockUser.findOne = jest.fn().mockReturnValue({
         select: jest.fn().mockResolvedValue({
           _id: '123',
+          username: 'testuser',
           email: 'existing@example.com',
           emailVerified: true
         })
@@ -87,6 +88,7 @@ describe('Auth Routes', () => {
         .post('/api/auth/signup')
         .send({
           name: 'Test User',
+          username: 'testuser',
           email: 'existing@example.com',
           password: 'password123'
         });
@@ -105,20 +107,61 @@ describe('Auth Routes', () => {
         .post('/api/auth/signup')
         .send({
           name: 'Test User'
-          // Missing email and password
+          // Missing username, email and password
         });
 
       expect(response.status).toBe(400);
       expect(response.body.message).toBeDefined();
     });
-  });
 
-  describe('POST /api/auth/login', () => {
-    it('should return 401 for invalid credentials', async () => {
-      // Mock no user found
+    it('should return 400 if username is already taken', async () => {
+      // Mock findOne to return a user with the same username but different email
+      mockUser.findOne = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue({
+          _id: '123',
+          username: 'testuser',
+          email: 'different@example.com',
+          emailVerified: true
+        })
+      }) as any;
+
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({
+          name: 'Test User',
+          username: 'testuser',
+          email: 'new@example.com',
+          password: 'password123'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('Username already taken');
+    });
+
+    it('should return 400 if username is too long', async () => {
+      // Mock no existing user
       mockUser.findOne = jest.fn().mockReturnValue({
         select: jest.fn().mockResolvedValue(null)
       }) as any;
+
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({
+          name: 'Test User',
+          username: 'a'.repeat(36), // 36 characters, exceeds max of 35
+          email: 'test@example.com',
+          password: 'password123'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('35 characters');
+    });
+  });
+
+  describe('POST /api/auth/login', () => {
+    it('should return 401 for invalid credentials with email', async () => {
+      // Mock no user found
+      mockUser.findOne = jest.fn().mockResolvedValue(null);
 
       const response = await request(app)
         .post('/api/auth/login')
@@ -131,6 +174,45 @@ describe('Auth Routes', () => {
       expect(response.body).toHaveProperty('message');
     });
 
+    it('should return 401 for invalid credentials with username', async () => {
+      // Mock no user found
+      mockUser.findOne = jest.fn().mockResolvedValue(null);
+
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          username: 'nonexistent',
+          password: 'wrongpassword'
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('should return 400 if neither email nor username is provided', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          password: 'password123'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('either email or username');
+    });
+
+    it('should return 400 if both email and username are provided', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'test@example.com',
+          username: 'testuser',
+          password: 'password123'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('not both');
+    });
+
     it('should validate required fields', async () => {
       const response = await request(app)
         .post('/api/auth/login')
@@ -139,7 +221,7 @@ describe('Auth Routes', () => {
           // Missing password
         });
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(400);
     });
   });
 

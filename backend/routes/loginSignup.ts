@@ -18,7 +18,8 @@ interface SignupBody {
 }
 
 interface LoginBody {
-  email: string;
+  email?: string;
+  username?: string;
   password: string;
   rememberDevice?: boolean;
   deviceToken?: string;
@@ -140,10 +141,20 @@ router.post('/signup', async (req: Request<{}, {}, SignupBody>, res: Response) =
 // Login route - now with 2FA support
 router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => {
   try {
-    const { email, password, rememberDevice, deviceToken } = req.body as LoginBody;
+    const { email, username, password, rememberDevice, deviceToken } = req.body as LoginBody;
 
-    // Find user
-    const user = await User.findOne({ email });
+    // Validate that either email or username is provided, but not both
+    if (!email && !username) {
+      return res.status(400).json({ message: 'Please provide either email or username' });
+    }
+    if (email && username) {
+      return res.status(400).json({ message: 'Please provide either email or username, not both' });
+    }
+
+    // Find user by email or username
+    const user = await User.findOne(
+      email ? { email } : { username }
+    );
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
