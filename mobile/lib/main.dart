@@ -318,12 +318,12 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.blue[700]),
+                        Icon(Icons.info_outline, color: Colors.blue[700], size: 18),
                         const SizedBox(width: 8),
                         const Text(
                           'Instructions',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -343,10 +343,10 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
                   ),
                   if (_isInstructionsExpanded)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -354,9 +354,9 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
                         child: Text(
                           _instructions,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             color: Colors.grey[800],
-                            height: 1.5,
+                            height: 1.4,
                           ),
                         ),
                       ),
@@ -365,7 +365,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
               ),
             ),
             
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             
             // Examples box with expand button
             Container(
@@ -380,12 +380,12 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        Icon(Icons.code, color: Colors.green[700]),
+                        Icon(Icons.code, color: Colors.green[700], size: 18),
                         const SizedBox(width: 8),
                         const Text(
                           'Examples',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -405,10 +405,10 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
                   ),
                   if (_isExamplesExpanded)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -416,9 +416,9 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
                         child: Text(
                           _examples,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             color: Colors.grey[800],
-                            height: 1.5,
+                            height: 1.4,
                             fontFamily: 'monospace',
                           ),
                         ),
