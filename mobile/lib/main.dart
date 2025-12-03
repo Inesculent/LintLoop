@@ -1,0 +1,325 @@
+import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:convert';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Monaco Editor App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+      ),
+      home: const MonacoEditorScreen(),
+    );
+  }
+}
+
+class MonacoEditorScreen extends StatefulWidget {
+  const MonacoEditorScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MonacoEditorScreen> createState() => _MonacoEditorScreenState();
+}
+
+class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
+  final TextEditingController _inputController = TextEditingController();
+  bool _isInputExpanded = false;
+  bool _isEditorExpanded = false;
+  String _selectedLanguage = 'javascript';
+  late WebViewController _webViewController;
+
+  final List<String> _languages = [
+    'javascript',
+    'typescript',
+    'python',
+    'java',
+    'csharp',
+    'cpp',
+    'go',
+    'rust',
+    'html',
+    'css',
+    'json',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeWebView();
+  }
+
+  void _initializeWebView() {
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..loadHtmlString(_getMonacoHtml());
+  }
+
+  String _getMonacoHtml() {
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; }
+        #container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <script>
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+        
+        let editor;
+        
+        require(['vs/editor/editor.main'], function() {
+            editor = monaco.editor.create(document.getElementById('container'), {
+                value: '// Write your code here...',
+                language: 'javascript',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                fontSize: 14,
+                lineNumbers: 'on',
+                roundedSelection: true,
+                scrollBeyondLastLine: false,
+            });
+        });
+        
+        function setLanguage(lang) {
+            if (editor) {
+                monaco.editor.setModelLanguage(editor.getModel(), lang);
+            }
+        }
+        
+        function getCode() {
+            if (editor) {
+                return editor.getValue();
+            }
+            return '';
+        }
+        
+        function setCode(code) {
+            if (editor) {
+                editor.setValue(code);
+            }
+        }
+    </script>
+</body>
+</html>
+    ''';
+  }
+
+  void _updateEditorLanguage(String language) {
+    _webViewController.runJavaScript('setLanguage("$language")');
+  }
+
+  void _runCode() async {
+    final code = await _webViewController
+        .runJavaScriptReturningResult('getCode()') as String;
+    
+    // Remove quotes from the result
+    final cleanCode = code.replaceAll('"', '').replaceAll('\\n', '\n');
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Running $_selectedLanguage code...'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+    
+    // Here you would integrate with a code execution API
+    print('Code to run:\n$cleanCode');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Monaco Editor'),
+        elevation: 2,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Input text box with expand button
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _inputController,
+                            maxLines: _isInputExpanded ? 5 : 1,
+                            decoration: const InputDecoration(
+                              hintText: 'Enter your input...',
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(_isInputExpanded 
+                              ? Icons.expand_less 
+                              : Icons.expand_more),
+                          onPressed: () {
+                            setState(() {
+                              _isInputExpanded = !_isInputExpanded;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Language dropdown and Run button
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedLanguage,
+                        isExpanded: true,
+                        items: _languages.map((String language) {
+                          return DropdownMenuItem<String>(
+                            value: language,
+                            child: Text(language.toUpperCase()),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _selectedLanguage = newValue;
+                            });
+                            _updateEditorLanguage(newValue);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(width: 12),
+                
+                ElevatedButton(
+                  onPressed: _runCode,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Run'),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Monaco Editor with expand button
+            Expanded(
+              flex: _isEditorExpanded ? 3 : 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Code Editor',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                _isEditorExpanded 
+                                    ? Icons.fullscreen_exit 
+                                    : Icons.fullscreen,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isEditorExpanded = !_isEditorExpanded;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: WebViewWidget(
+                          controller: _webViewController,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    super.dispose();
+  }
+}
