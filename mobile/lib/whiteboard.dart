@@ -12,7 +12,7 @@ class WhiteboardApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Whiteboard',
+      title: 'LintLoop',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -33,11 +33,13 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
   Color selectedColor = Colors.black;
   bool isEraser = false;
   int _selectedIndex = 2; // Whiteboard is selected by default
+  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('LintLoop'),
         actions: [
           IconButton(
@@ -164,6 +166,32 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
     );
   }
 
+  
+
+  Widget _buildToolButton({
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.blue : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isSelected ? Colors.blue : Colors.grey,
+          width: 2,
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(icon),
+        color: isSelected ? Colors.white : Colors.grey[700],
+        onPressed: onPressed,
+        tooltip: tooltip,
+      ),
+    );
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -194,30 +222,6 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
       });
     }
     // index == 2 is the current Whiteboard screen, so do nothing
-  }
-
-  Widget _buildToolButton({
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onPressed,
-    required String tooltip,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isSelected ? Colors.blue : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isSelected ? Colors.blue : Colors.grey,
-          width: 2,
-        ),
-      ),
-      child: IconButton(
-        icon: Icon(icon),
-        color: isSelected ? Colors.white : Colors.grey[700],
-        onPressed: onPressed,
-        tooltip: tooltip,
-      ),
-    );
   }
 
   Widget _buildColorButton(Color color) {

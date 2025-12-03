@@ -16,6 +16,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('LintLoop'),
         elevation: 2,
         backgroundColor: const Color(0xFF1E1E1E),
