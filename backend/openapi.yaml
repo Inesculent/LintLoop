@@ -1,0 +1,2059 @@
+openapi: 3.0.4
+
+info:
+  title: LintLoop API
+  description: |-
+    LintLoop is a code practice platform with automated style and performance grading.
+    It supports multiple programming languages (Python, Java, JavaScript) and provides
+    comprehensive feedback on code correctness, performance, style, and readability.
+
+    ## Features
+    - User authentication with 2FA support
+    - Problem management with test cases
+    - Code execution in sandboxed Docker containers
+    - Automated grading and scoring
+    - Submission history and tracking
+
+    ## Authentication
+    Most endpoints require JWT authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+
+    ## Supported Languages
+    - Python
+    - Java
+    - JavaScript (partial support)
+
+  termsOfService: https://inesculent.dev/terms
+  contact:
+    email: support@inesculent.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  version: 1.0.0
+
+externalDocs:
+  description: LintLoop Documentation
+  url: https://inesculent.dev/docs
+
+servers:
+  - url: https://inesculent.dev/api
+    description: Production server
+
+tags:
+  - name: health
+    description: Health check and API info endpoints
+  - name: auth
+    description: Authentication and user registration
+  - name: user
+    description: User profile management
+  - name: problems
+    description: Coding problems and challenges
+  - name: submissions
+    description: Code submission history and results
+  - name: execution
+    description: Code execution and testing
+
+paths:
+  /:
+    get:
+      tags:
+        - health
+      summary: Get API information.
+      description: Returns basic information about the LintLoop API.
+      operationId: getApiInfo
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiInfo'
+
+  /health:
+    get:
+      tags:
+        - health
+      summary: Health check endpoint.
+      description: Returns the health status of the API server.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/signup:
+    post:
+      tags:
+        - auth
+      summary: Register a new user.
+      description: |-
+        Creates a new user account. A verification email will be sent to the provided email address.
+        The user must verify their email before they can log in.
+      operationId: signup
+      requestBody:
+        description: User registration details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignupResponse'
+        '200':
+          description: Verification email resent to unverified existing user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "An account with this email already exists but is not verified. We have sent a new verification email to your inbox."
+                  requiresVerification:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid input or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Log in to the system.
+      description: |-
+        Authenticates a user and returns a JWT token. If 2FA is enabled,
+        a verification code will be sent to the user's email.
+      operationId: login
+      requestBody:
+        description: Login credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful or 2FA required
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/LoginSuccessResponse'
+                  - $ref: '#/components/schemas/TwoFactorRequiredResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Email not verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  requiresVerification:
+                    type: boolean
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/verify-2fa:
+    post:
+      tags:
+        - auth
+      summary: Verify 2FA code.
+      description: Verifies the 2FA code sent to the user's email and returns a JWT token.
+      operationId: verify2FA
+      requestBody:
+        description: 2FA verification details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Verify2FARequest'
+      responses:
+        '200':
+          description: 2FA verification successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/enable-2fa:
+    post:
+      tags:
+        - auth
+      summary: Enable 2FA for current user.
+      description: Enables two-factor authentication for the authenticated user.
+      operationId: enable2FA
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 2FA enabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "2FA enabled successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/disable-2fa:
+    post:
+      tags:
+        - auth
+      summary: Disable 2FA for current user.
+      description: Disables two-factor authentication for the authenticated user.
+      operationId: disable2FA
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 2FA disabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "2FA disabled successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/verify-email/{token}:
+    get:
+      tags:
+        - auth
+      summary: Verify email address.
+      description: Verifies a user's email address using the token sent via email.
+      operationId: verifyEmail
+      parameters:
+        - name: token
+          in: path
+          description: Email verification token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email verified successfully! You can now log in."
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/resend-verification:
+    post:
+      tags:
+        - auth
+      summary: Resend verification email.
+      description: Resends the email verification link to the user's email address.
+      operationId: resendVerification
+      requestBody:
+        description: Email address to resend verification to
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+      responses:
+        '200':
+          description: Verification email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification email sent successfully"
+        '400':
+          description: Email already verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /profile:
+    get:
+      tags:
+        - user
+      summary: Get current user profile.
+      description: Returns the profile of the currently authenticated user.
+      operationId: getProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/{uid}:
+    get:
+      tags:
+        - user
+      summary: Get user profile by UID.
+      description: |-
+        Returns the profile of a user by their UID.
+        Users can only view their own profile unless they are an admin.
+      operationId: getUserByUid
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uid
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Cannot view other user's profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - user
+      summary: Update user profile.
+      description: |-
+        Updates the profile of a user.
+        Users can only update their own profile unless they are an admin.
+        Cannot update email, password, or role through this endpoint.
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uid
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Fields to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User updated successfully"
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Cannot update other user's profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - user
+      summary: Delete user account.
+      description: |-
+        Deletes a user account and all associated submissions.
+        Users can only delete their own account unless they are an admin.
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uid
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User account deleted successfully"
+                  uid:
+                    type: integer
+                    example: 123
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Cannot delete other user's account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /problems:
+    get:
+      tags:
+        - problems
+      summary: Get all problems.
+      description: Returns a list of all coding problems with optional filtering.
+      operationId: getAllProblems
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: difficulty
+          in: query
+          description: Filter by difficulty level
+          required: false
+          schema:
+            type: string
+            enum:
+              - Easy
+              - Medium
+              - Hard
+        - name: tags
+          in: query
+          description: Filter by tags (can provide multiple)
+          required: false
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProblemSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - problems
+      summary: Create a new problem.
+      description: Creates a new coding problem. Requires admin privileges.
+      operationId: createProblem
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Problem details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProblemCreateRequest'
+      responses:
+        '201':
+          description: Problem created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /problems/{pid}:
+    get:
+      tags:
+        - problems
+      summary: Get problem by ID.
+      description: Returns a single problem with full details.
+      operationId: getProblemByPid
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: pid
+          in: path
+          description: Problem ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - problems
+      summary: Delete a problem.
+      description: Deletes a problem and all associated submissions. Requires admin privileges.
+      operationId: deleteProblem
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: pid
+          in: path
+          description: Problem ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Problem deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Problem deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /submissions:
+    get:
+      tags:
+        - submissions
+      summary: Get all submissions for current user.
+      description: Returns all submissions made by the authenticated user.
+      operationId: getMySubmissions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubmissionSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /submissions/{submissionId}:
+    get:
+      tags:
+        - submissions
+      summary: Get submission by ID.
+      description: Returns detailed information about a specific submission.
+      operationId: getSubmissionById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: submissionId
+          in: path
+          description: Submission ObjectId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submission'
+        '400':
+          description: Invalid submission ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Submission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - submissions
+      summary: Delete a submission.
+      description: Deletes a submission. Requires admin privileges.
+      operationId: deleteSubmission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: submissionId
+          in: path
+          description: Submission ObjectId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Submission deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Submission deleted successfully"
+        '400':
+          description: Invalid submission ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Submission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /submissions/user/{uid}/problem/{pid}:
+    get:
+      tags:
+        - submissions
+      summary: Get submission history for user on a problem.
+      description: |-
+        Returns all submissions for a specific user on a specific problem.
+        Users can only view their own submissions unless they are an admin.
+      operationId: getUserProblemSubmissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uid
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: pid
+          in: path
+          description: Problem ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubmissionHistory'
+        '400':
+          description: Invalid user ID or problem ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Cannot view other user's submissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User or problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /submissions/problem/{pid}:
+    get:
+      tags:
+        - submissions
+      summary: Get all submissions for a problem.
+      description: Returns all submissions for a specific problem. Requires admin privileges.
+      operationId: getProblemSubmissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: pid
+          in: path
+          description: Problem ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Submission'
+        '400':
+          description: Invalid problem ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /execute:
+    post:
+      tags:
+        - execution
+      summary: Execute code.
+      description: |-
+        Executes code in a sandboxed Docker container.
+        This is a general-purpose execution endpoint.
+      operationId: executeCode
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Code to execute
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRequest'
+      responses:
+        '200':
+          description: Successful execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResult'
+        '400':
+          description: Invalid input or unsupported language
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Execution error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /run-test:
+    post:
+      tags:
+        - execution
+      summary: Run code with test cases.
+      description: |-
+        Runs code against test cases without saving a submission.
+        Used for the "Run" button to test code with visible test cases.
+        Test cases can be provided by the client or fall back to visible test cases from the problem.
+      operationId: runTest
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Code and test cases to run
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunTestRequest'
+      responses:
+        '200':
+          description: Successful execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResult'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Execution error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Language not yet implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /run-solution:
+    post:
+      tags:
+        - execution
+      summary: Submit solution for grading.
+      description: |-
+        Runs code against ALL test cases and saves a submission.
+        Used for the "Submit" button to grade and record the solution.
+        Returns execution results, grading breakdown, and submission details.
+      operationId: runSolution
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Solution code to submit
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunSolutionRequest'
+      responses:
+        '200':
+          description: Solution graded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunSolutionResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Execution or grading error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Language not yet implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "Something went wrong"
+        error:
+          type: string
+          description: Detailed error information
+        details:
+          type: string
+          description: Additional error details
+
+    ApiInfo:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "LinterLoop API"
+        description:
+          type: string
+          example: "Code practice platform with automated style and performance grading"
+        endpoints:
+          type: array
+          items:
+            type: string
+          example: ["/health", "/api/auth/signup", "/api/auth/login", "/api/problems", "/api/submissions", "/api/execute"]
+        supportedLanguages:
+          type: array
+          items:
+            type: string
+          example: ["python", "java"]
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "ok"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        version:
+          type: string
+          example: "1.0.0"
+
+    SignupRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: "John Doe"
+        username:
+          type: string
+          maxLength: 35
+          description: Optional. Defaults to email if not provided.
+          example: "johndoe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 255
+          format: password
+          example: "securePassword123"
+
+    SignupResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "User created successfully. Please check your email to verify your account."
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            uid:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: "John Doe"
+            username:
+              type: string
+              example: "johndoe"
+            email:
+              type: string
+              example: "john@example.com"
+            role:
+              type: string
+              enum: [admin, user]
+              example: "user"
+            emailVerified:
+              type: boolean
+              example: false
+
+    LoginRequest:
+      type: object
+      required:
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email or username must be provided (not both)
+          example: "john@example.com"
+        username:
+          type: string
+          description: Email or username must be provided (not both)
+          example: "johndoe"
+        password:
+          type: string
+          format: password
+          example: "securePassword123"
+        rememberDevice:
+          type: boolean
+          description: If true, generates a device token to bypass 2FA on future logins
+          example: true
+        deviceToken:
+          type: string
+          description: Previously generated device token to bypass 2FA
+
+    LoginSuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Login successful"
+        token:
+          type: string
+          description: JWT token for authentication
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        deviceToken:
+          type: string
+          description: Token to remember this device (only if rememberDevice was true)
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            uid:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: "John Doe"
+            username:
+              type: string
+              example: "johndoe"
+            email:
+              type: string
+              example: "john@example.com"
+            role:
+              type: string
+              enum: [admin, user]
+              example: "user"
+
+    TwoFactorRequiredResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "2FA code sent to email"
+        requiresTwoFactor:
+          type: boolean
+          example: true
+        userId:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+
+    Verify2FARequest:
+      type: object
+      required:
+        - userId
+        - code
+      properties:
+        userId:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        code:
+          type: string
+          example: "123456"
+        rememberDevice:
+          type: boolean
+          description: If true, generates a device token to bypass 2FA on future logins
+          example: true
+
+    UserProfile:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        uid:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "John Doe"
+        username:
+          type: string
+          example: "johndoe"
+        bio:
+          type: string
+          example: "Software developer passionate about algorithms"
+        email:
+          type: string
+          example: "john@example.com"
+        role:
+          type: string
+          enum: [admin, user]
+          example: "user"
+        problems_solved:
+          type: integer
+          example: 42
+        emailVerified:
+          type: boolean
+          example: true
+        twoFactorEnabled:
+          type: boolean
+          example: false
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: "John Smith"
+        username:
+          type: string
+          maxLength: 35
+          example: "johnsmith"
+        bio:
+          type: string
+          example: "Updated bio"
+
+    ProblemSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        pid:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Two Sum"
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+          example: "Easy"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["arrays", "hash-table"]
+
+    Problem:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        pid:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Two Sum"
+        problemStatement:
+          type: string
+          example: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target."
+        examples:
+          type: array
+          items:
+            $ref: '#/components/schemas/Example'
+        constraints:
+          type: array
+          items:
+            type: string
+          example: ["2 <= nums.length <= 10^4", "-10^9 <= nums[i] <= 10^9"]
+        functionSignatures:
+          type: object
+          properties:
+            python:
+              $ref: '#/components/schemas/FunctionSignature'
+            java:
+              $ref: '#/components/schemas/FunctionSignature'
+            javascript:
+              $ref: '#/components/schemas/FunctionSignature'
+        testCases:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCase'
+        starterCode:
+          type: object
+          properties:
+            python:
+              type: string
+            java:
+              type: string
+            javascript:
+              type: string
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+          example: "Easy"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["arrays", "hash-table"]
+        hints:
+          type: array
+          items:
+            type: string
+          example: ["A really brute force way would be to search for all possible pairs..."]
+        timeLimit:
+          type: object
+          properties:
+            python:
+              type: integer
+            java:
+              type: integer
+            javascript:
+              type: integer
+            default:
+              type: integer
+              example: 5000
+        memoryLimit:
+          type: object
+          properties:
+            python:
+              type: integer
+            java:
+              type: integer
+            javascript:
+              type: integer
+            default:
+              type: integer
+              example: 256
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProblemCreateRequest:
+      type: object
+      required:
+        - pid
+        - title
+        - problemStatement
+        - testCases
+        - difficulty
+      properties:
+        pid:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Two Sum"
+        problemStatement:
+          type: string
+          example: "Given an array of integers..."
+        examples:
+          type: array
+          items:
+            $ref: '#/components/schemas/Example'
+        constraints:
+          type: array
+          items:
+            type: string
+        functionSignatures:
+          type: object
+          properties:
+            python:
+              $ref: '#/components/schemas/FunctionSignature'
+            java:
+              $ref: '#/components/schemas/FunctionSignature'
+            javascript:
+              $ref: '#/components/schemas/FunctionSignature'
+        testCases:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCase'
+          minItems: 1
+        starterCode:
+          type: object
+          properties:
+            python:
+              type: string
+            java:
+              type: string
+            javascript:
+              type: string
+        solutionCode:
+          type: object
+          properties:
+            python:
+              type: string
+            java:
+              type: string
+            javascript:
+              type: string
+        testHarness:
+          type: object
+          properties:
+            python:
+              type: string
+            java:
+              type: string
+            javascript:
+              type: string
+        timeLimit:
+          type: object
+          properties:
+            python:
+              type: integer
+            java:
+              type: integer
+            javascript:
+              type: integer
+            default:
+              type: integer
+        memoryLimit:
+          type: object
+          properties:
+            python:
+              type: integer
+            java:
+              type: integer
+            javascript:
+              type: integer
+            default:
+              type: integer
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+        tags:
+          type: array
+          items:
+            type: string
+        hints:
+          type: array
+          items:
+            type: string
+
+    Example:
+      type: object
+      properties:
+        input:
+          type: string
+          example: "nums = [2,7,11,15], target = 9"
+        output:
+          type: string
+          example: "[0,1]"
+        explanation:
+          type: string
+          example: "Because nums[0] + nums[1] == 9, we return [0, 1]."
+
+    FunctionSignature:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "twoSum"
+        returnType:
+          type: string
+          example: "List[int]"
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Parameter'
+
+    Parameter:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "nums"
+        type:
+          type: string
+          example: "List[int]"
+
+    TestCase:
+      type: object
+      required:
+        - input
+        - output
+      properties:
+        input:
+          description: Test case input (can be any JSON type)
+          example: {"nums": [2, 7, 11, 15], "target": 9}
+        output:
+          description: Expected output (can be any JSON type)
+          example: [0, 1]
+        explanation:
+          type: string
+          example: "Because nums[0] + nums[1] == 9"
+        isVisible:
+          type: boolean
+          description: Whether this test case is visible to users
+          default: false
+
+    SubmissionSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+        problem:
+          type: object
+          properties:
+            _id:
+              type: string
+            pid:
+              type: integer
+            title:
+              type: string
+            difficulty:
+              type: string
+        status:
+          type: string
+          enum:
+            - Accepted
+            - Wrong Answer
+            - Time Limit Exceeded
+            - Memory Limit Exceeded
+            - Runtime Error
+            - Compilation Error
+            - Output Limit Exceeded
+        score:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+
+    Submission:
+      type: object
+      properties:
+        _id:
+          type: string
+        problem:
+          $ref: '#/components/schemas/ProblemSummary'
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+            uid:
+              type: integer
+            name:
+              type: string
+            email:
+              type: string
+        code:
+          type: string
+        language:
+          type: string
+          enum: [python, java, javascript]
+        status:
+          type: string
+          enum:
+            - Accepted
+            - Wrong Answer
+            - Time Limit Exceeded
+            - Memory Limit Exceeded
+            - Runtime Error
+            - Compilation Error
+            - Output Limit Exceeded
+        passedTests:
+          type: integer
+        totalTests:
+          type: integer
+        executionTime:
+          type: integer
+          description: Execution time in milliseconds
+        memoryUsed:
+          type: integer
+          description: Memory used in MB
+        errorMessage:
+          type: string
+        failedTestCase:
+          type: object
+          properties:
+            input:
+              description: The input that caused the failure
+            expected:
+              description: Expected output
+            actual:
+              description: Actual output
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+        scoreBreakdown:
+          $ref: '#/components/schemas/ScoreBreakdown'
+        feedback:
+          type: array
+          items:
+            type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    SubmissionHistory:
+      type: object
+      properties:
+        _id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - Accepted
+            - Wrong Answer
+            - Time Limit Exceeded
+            - Memory Limit Exceeded
+            - Runtime Error
+            - Compilation Error
+            - Output Limit Exceeded
+        isAccepted:
+          type: boolean
+        score:
+          type: number
+        passedTests:
+          type: integer
+        totalTests:
+          type: integer
+        language:
+          type: string
+          enum: [python, java, javascript]
+        executionTime:
+          type: integer
+
+    ScoreBreakdown:
+      type: object
+      properties:
+        correctness:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Score for test case correctness
+        performance:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Score for execution time performance
+        style:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Score for code style (linting)
+        readability:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Score for code readability
+
+    ExecuteRequest:
+      type: object
+      required:
+        - code
+        - language
+      properties:
+        code:
+          type: string
+          description: Code to execute
+          example: "print('Hello, World!')"
+        language:
+          type: string
+          enum: [python, java]
+          description: Programming language
+          example: "python"
+        problemId:
+          type: integer
+          description: Optional problem ID for context
+
+    ExecutionResult:
+      type: object
+      properties:
+        output:
+          description: Execution output (string or parsed JSON)
+          example: "Hello, World!"
+        stderr:
+          type: string
+          description: Standard error output
+        exitCode:
+          type: integer
+          description: Process exit code
+        executionTime:
+          type: integer
+          description: Execution time in milliseconds
+        success:
+          type: boolean
+          description: Whether execution completed successfully
+
+    RunTestRequest:
+      type: object
+      required:
+        - problemId
+        - solutionCode
+        - language
+      properties:
+        problemId:
+          type: integer
+          description: Problem ID
+          example: 1
+        solutionCode:
+          type: string
+          description: Solution code to test
+        language:
+          type: string
+          enum: [python, java, javascript]
+          description: Programming language
+          example: "python"
+        testCases:
+          type: array
+          description: Optional test cases (falls back to visible test cases from problem)
+          items:
+            $ref: '#/components/schemas/TestCase'
+
+    RunSolutionRequest:
+      type: object
+      required:
+        - problemId
+        - solutionCode
+        - language
+      properties:
+        problemId:
+          type: integer
+          description: Problem ID
+          example: 1
+        solutionCode:
+          type: string
+          description: Solution code to submit
+        language:
+          type: string
+          enum: [python, java, javascript]
+          description: Programming language
+          example: "python"
+
+    RunSolutionResponse:
+      type: object
+      properties:
+        execution:
+          $ref: '#/components/schemas/ExecutionResult'
+        grading:
+          type: object
+          properties:
+            totalScore:
+              type: number
+            breakdown:
+              $ref: '#/components/schemas/ScoreBreakdown'
+            testResults:
+              type: array
+              items:
+                type: object
+                properties:
+                  passed:
+                    type: boolean
+                  input:
+                    type: string
+                  expected:
+                    type: string
+                  actual:
+                    type: string
+                  executionTime:
+                    type: number
+            feedback:
+              type: array
+              items:
+                type: string
+            status:
+              type: string
+              enum: [PASSED, FAILED]
+        submission:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            score:
+              type: number
+            scoreBreakdown:
+              $ref: '#/components/schemas/ScoreBreakdown'
+            passedTests:
+              type: integer
+            totalTests:
+              type: integer
+            executionTime:
+              type: integer
+            feedback:
+              type: array
+              items:
+                type: string
+            timestamp:
+              type: string
+              format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |-
+        JWT token obtained from /auth/login endpoint.
+        Include in Authorization header: `Bearer <token>`
+
