@@ -94,7 +94,9 @@ app.use('/api/run-solution', authenticate, runSolutionRoutes);
 app.use('/api/run-test', authenticate, runTestRoutes);
 app.use('/api/problems', authenticate, problemRoutes);
 app.use('/api/submissions', authenticate, submissionRoutes);
-app.use('/api/user', authenticate, userRoutes);
+// User management routes (profile updates, delete account)
+app.use('/api/users', authenticate, userRoutes);
+
 // Example: Protected profile endpoint
 app.get('/api/profile', authenticate, async (req: AuthRequest, res: Response) => {
   try {

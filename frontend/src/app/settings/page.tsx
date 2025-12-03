@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { Navigation } from '../components/Navigation';
 import { LoadingPage } from '../components/LoadingSpinner';
 
 interface UserSettings {
   profile: {
+    uid?: number;
     username: string;
     email: string;
     name: string;
@@ -35,43 +37,38 @@ export default function SettingsPage() {
       try {
         const token = localStorage.getItem('token');
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-        
-        // Since backend is not ready, skip the API call and use mock data
-        /* When backend is ready, uncomment this section
         if (!token) {
           throw new Error('Authentication token not found');
         }
 
-        const response = await fetch(`${apiBase}/api/settings`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        // Fetch current user profile and use it to populate settings.profile
+        const profileRes = await fetch(`${apiBase}/api/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        
-        if (!response.ok) {
-          switch (response.status) {
+
+        if (!profileRes.ok) {
+          switch (profileRes.status) {
             case 401:
               throw new Error('Your session has expired. Please log in again.');
             case 403:
               throw new Error('You do not have permission to access these settings.');
             case 404:
-              throw new Error('Settings not found.');
+              throw new Error('Profile not found.');
             default:
-              throw new Error(`Failed to fetch settings: ${response.statusText}`);
+              throw new Error(`Failed to fetch profile: ${profileRes.statusText}`);
           }
         }
 
-        const data = await response.json();
-        setSettings(data);
-        */
+        const profileData = await profileRes.json();
 
-        // Using mock data for now
-        const mockSettings: UserSettings = {
+        // Build initial settings object with sensible defaults for preferences/account
+        const initial: UserSettings = {
           profile: {
-            username: 'CodingNinja',
-            email: 'user@example.com',
-            name: 'John Doe',
-            bio: 'Passionate about coding and problem-solving'
+            uid: profileData.uid,
+            username: profileData.username || profileData.email || '',
+            email: profileData.email || '',
+            name: profileData.name || '',
+            bio: profileData.bio || ''
           },
           preferences: {
             theme: 'system',
@@ -79,12 +76,12 @@ export default function SettingsPage() {
             defaultLanguage: 'python'
           },
           account: {
-            twoFactorEnabled: false,
-            lastPasswordChange: '2025-09-15T10:30:00Z'
+            twoFactorEnabled: profileData.twoFactorEnabled || false,
+            lastPasswordChange: profileData.updatedAt || new Date().toISOString()
           }
         };
-        
-        setSettings(mockSettings);
+
+        setSettings(initial);
       } catch (error) {
         console.error('Settings fetch error:', error);
         setMessage({ type: 'error', text: 'Failed to load settings' });
@@ -101,7 +98,72 @@ export default function SettingsPage() {
     try {
       const token = localStorage.getItem('token');
       const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-      
+      if (!token) throw new Error('Authentication token not found');
+
+      if (section === 'profile') {
+        // PATCH user profile
+        const uid = settings?.profile.uid;
+        if (!uid) throw new Error('User id not available');
+
+        const payload = {
+          username: settings?.profile.username,
+          name: settings?.profile.name,
+          bio: settings?.profile.bio
+        };
+
+        const response = await fetch(`${apiBase}/api/users/${uid}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err?.error || 'Failed to save profile');
+        }
+
+        const data = await response.json();
+        // Update local state with returned user
+        setSettings((prev) => prev ? ({ ...prev, profile: { ...prev.profile, username: data.user.username, name: data.user.name, bio: data.user.bio } }) : prev);
+        setMessage({ type: 'success', text: 'Profile saved successfully' });
+        setTimeout(() => setMessage(null), 3000);
+        return;
+      }
+
+      // Account changes are stored on the user object in the backend (Users API)
+      if (section === 'account') {
+        const uid = settings?.profile.uid;
+        if (!uid) throw new Error('User id not available');
+
+        const payload = {
+          twoFactorEnabled: settings?.account.twoFactorEnabled
+        };
+
+        const resp = await fetch(`${apiBase}/api/users/${uid}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err?.error || 'Failed to save account settings');
+        }
+
+        const data = await resp.json();
+        setSettings((prev) => prev ? ({ ...prev, account: { ...prev.account, twoFactorEnabled: data.user.twoFactorEnabled } }) : prev);
+        setMessage({ type: 'success', text: 'Account settings saved successfully' });
+        setTimeout(() => setMessage(null), 3000);
+        return;
+      }
+
+      // For preferences we attempt to call a settings endpoint if provided by the API.
       const response = await fetch(`${apiBase}/api/settings/${section}`, {
         method: 'PUT',
         headers: {
@@ -110,9 +172,12 @@ export default function SettingsPage() {
         },
         body: JSON.stringify(settings?.[section])
       });
-      
-      if (!response.ok) throw new Error('Failed to save settings');
-      
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to save settings');
+      }
+
       setMessage({ type: 'success', text: 'Settings saved successfully' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
@@ -137,6 +202,43 @@ export default function SettingsPage() {
         [field]: value
       }
     });
+  };
+
+  const router = useRouter();
+
+  const handleDeleteAccount = async () => {
+    if (!settings?.profile.uid) {
+      setMessage({ type: 'error', text: 'Unable to determine user id' });
+      return;
+    }
+
+    const confirmed = confirm('Are you sure you want to delete your account? This action is irreversible.');
+    if (!confirmed) return;
+
+    try {
+      setSaving(true);
+      const token = localStorage.getItem('token');
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
+      const response = await fetch(`${apiBase}/api/users/${settings.profile.uid}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to delete account');
+      }
+
+      // On success, clear local token and redirect to signin
+      localStorage.removeItem('token');
+      setMessage({ type: 'success', text: 'Account deleted. Redirecting...' });
+      setTimeout(() => router.push('/signin'), 800);
+    } catch (err) {
+      console.error('Delete account error', err);
+      setMessage({ type: 'error', text: 'Failed to delete account' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -302,9 +404,11 @@ export default function SettingsPage() {
                       </div>
                       <div className="border-t border-gray-200 pt-6">
                         <button
-                          className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          onClick={handleDeleteAccount}
+                          disabled={saving}
+                          className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                         >
-                          Delete Account
+                          {saving ? 'Processing...' : 'Delete Account'}
                         </button>
                       </div>
                     </div>
