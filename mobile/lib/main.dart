@@ -36,8 +36,17 @@ class MonacoEditorScreen extends StatefulWidget {
 }
 
 class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
-  final TextEditingController _inputController = TextEditingController();
-  bool _isInputExpanded = false;
+  bool _isInstructionsExpanded = false;
+  final String _instructions = '''Welcome to LintLoop Code Editor!
+
+Instructions:
+1. Select your programming language from the dropdown menu
+2. Write your code in the editor below
+3. Click the Run button to execute your code
+4. View the output in the popup dialog
+
+Supported languages include C++, Java, Python, JavaScript, and many more.
+Happy coding!''';
   bool _isEditorExpanded = false;
   String _selectedLanguage = 'cpp';
   late WebViewController _webViewController;
@@ -161,7 +170,8 @@ void _runCode() async {
     Language: $_selectedLanguage
     Code length: ${cleanCode.length} characters
 
-    helloworld
+    --- Sample Output ---
+    Hello, World!
     Execution completed in 0.23s
     ''';
     
@@ -266,42 +276,62 @@ void _showOutputDialog(String output) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Input text box with expand button
+            // Instructions box with expand button
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue[200]!, width: 2),
               ),
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _inputController,
-                            maxLines: _isInputExpanded ? 5 : 1,
-                            decoration: const InputDecoration(
-                              hintText: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.',
-                              border: InputBorder.none,
-                            ),
+                        Icon(Icons.info_outline, color: Colors.blue[700]),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Instructions',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
+                        const Spacer(),
                         IconButton(
-                          icon: Icon(_isInputExpanded 
+                          icon: Icon(_isInstructionsExpanded 
                               ? Icons.expand_less 
                               : Icons.expand_more),
                           onPressed: () {
                             setState(() {
-                              _isInputExpanded = !_isInputExpanded;
+                              _isInstructionsExpanded = !_isInstructionsExpanded;
                             });
                           },
                         ),
                       ],
                     ),
                   ),
+                  if (_isInstructionsExpanded)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _instructions,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[800],
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -430,7 +460,6 @@ void _showOutputDialog(String output) {
 
   @override
   void dispose() {
-    _inputController.dispose();
     super.dispose();
   }
 }
