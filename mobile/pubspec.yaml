@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  webview_flutter: ^4.2.1
 
   # UI & Styling
   cupertino_icons: ^1.0.2
@@ -31,7 +32,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.4.2
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
