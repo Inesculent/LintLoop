@@ -447,7 +447,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
             ),
             
             if (!_isEditorExpanded)
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             
             // Instructions box with expand button - hidden when editor is expanded
             if (!_isEditorExpanded)
@@ -543,11 +543,9 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
             if (!_isEditorExpanded)
             const SizedBox(height: 12),
             
-            if (!_isEditorExpanded)
-            const SizedBox(height: 16),
-            
             // Monaco Editor with expand button
-            Expanded(
+            Flexible(
+              flex: 1,
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
