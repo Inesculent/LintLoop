@@ -38,7 +38,7 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Whiteboard'),
+        title: const Text('LintLoop'),
         actions: [
           IconButton(
             icon: const Icon(Icons.clear),

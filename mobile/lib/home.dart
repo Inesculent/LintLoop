@@ -16,63 +16,111 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('LintLoop - Home'),
+        title: const Text('LintLoop'),
         elevation: 2,
         backgroundColor: const Color(0xFF1E1E1E),
         foregroundColor: Colors.white,
       ),
       body: Container(
         color: const Color(0xFF000000),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.home_rounded,
-                  size: 100,
-                  color: Colors.blue[300],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome section
+              const Text(
+                'Welcome back, Laila!',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Welcome to LintLoop',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Continue your coding practice journey.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[400],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Practice coding problems and collaborate',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[400],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 48),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildFeatureCard(
-                      icon: Icons.code,
-                      title: 'Code Editor',
-                      description: 'Solve problems with our Monaco editor',
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(width: 24),
-                    _buildFeatureCard(
-                      icon: Icons.draw,
-                      title: 'Whiteboard',
-                      description: 'Visualize ideas and solutions',
+              ),
+              const SizedBox(height: 24),
+              
+              // Stats cards
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'Problems Solved',
+                      value: '1',
                       color: Colors.green,
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'Problems Available',
+                      value: '4',
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildStatCard(
+                title: 'Completion Rate',
+                value: '25%',
+                color: Colors.purple,
+                isWide: true,
+              ),
+              const SizedBox(height: 32),
+              
+              // Available Problems section
+              const Text(
+                'Available Problems',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Problems table
+              _buildProblemItem(
+                status: 'Unsolved',
+                title: 'Two Sum',
+                difficulty: 'Easy',
+                difficultyColor: Colors.green,
+                isSolved: false,
+              ),
+              const SizedBox(height: 8),
+              _buildProblemItem(
+                status: 'Solved',
+                title: 'Merge Intervals',
+                difficulty: 'Medium',
+                difficultyColor: Colors.orange,
+                isSolved: true,
+              ),
+              const SizedBox(height: 8),
+              _buildProblemItem(
+                status: 'Unsolved',
+                title: 'Valid Parentheses',
+                difficulty: 'Easy',
+                difficultyColor: Colors.green,
+                isSolved: false,
+              ),
+              const SizedBox(height: 8),
+              _buildProblemItem(
+                status: 'Unsolved',
+                title: 'Trapping Rain Water',
+                difficulty: 'Hard',
+                difficultyColor: Colors.red,
+                isSolved: false,
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),
@@ -130,45 +178,130 @@ class _HomePageState extends State<HomePage> {
     // index == 0 is the current Home screen, so do nothing
   }
 
-  Widget _buildFeatureCard({
-    required IconData icon,
+  Widget _buildStatCard({
     required String title,
-    required String description,
+    required String value,
     required Color color,
+    bool isWide = false,
   }) {
     return Container(
-      width: 160,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3), width: 2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[800]!, width: 1),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 48,
-            color: color,
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProblemItem({
+    required String status,
+    required String title,
+    required String difficulty,
+    required Color difficultyColor,
+    required bool isSolved,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[800]!, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSolved ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isSolved ? Colors.green : Colors.grey[400],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              // Difficulty badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: difficultyColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  difficulty,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: difficultyColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Text(
             title,
             style: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
               color: Colors.white,
+              fontWeight: FontWeight.w600,
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[400],
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                // Navigate to code editor
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MonacoEditorScreen()),
+                );
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text(
+                'Solve',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
