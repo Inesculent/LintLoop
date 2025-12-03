@@ -133,7 +133,37 @@ export default function SettingsPage() {
         return;
       }
 
-      // For preferences/account we still send to the settings endpoints (if any)
+      // Account changes are stored on the user object in the backend (Users API)
+      if (section === 'account') {
+        const uid = settings?.profile.uid;
+        if (!uid) throw new Error('User id not available');
+
+        const payload = {
+          twoFactorEnabled: settings?.account.twoFactorEnabled
+        };
+
+        const resp = await fetch(`${apiBase}/api/users/${uid}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err?.error || 'Failed to save account settings');
+        }
+
+        const data = await resp.json();
+        setSettings((prev) => prev ? ({ ...prev, account: { ...prev.account, twoFactorEnabled: data.user.twoFactorEnabled } }) : prev);
+        setMessage({ type: 'success', text: 'Account settings saved successfully' });
+        setTimeout(() => setMessage(null), 3000);
+        return;
+      }
+
+      // For preferences we attempt to call a settings endpoint if provided by the API.
       const response = await fetch(`${apiBase}/api/settings/${section}`, {
         method: 'PUT',
         headers: {
@@ -143,7 +173,10 @@ export default function SettingsPage() {
         body: JSON.stringify(settings?.[section])
       });
 
-      if (!response.ok) throw new Error('Failed to save settings');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to save settings');
+      }
 
       setMessage({ type: 'success', text: 'Settings saved successfully' });
       setTimeout(() => setMessage(null), 3000);
