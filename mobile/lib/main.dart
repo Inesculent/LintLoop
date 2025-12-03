@@ -1,6 +1,7 @@
 // import 'package:flutter/widget_previews.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'whiteboard.dart';
 // import 'dart:convert';
 
 void main() {
@@ -284,13 +285,12 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
       );
     } else if (index == 2) {
       // Navigate to Whiteboard
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Whiteboard selected'),
-          duration: Duration(seconds: 1),
-        ),
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const WhiteboardPage()),
       );
     }
+    // index == 1 is the current Code screen, so do nothing
   }
 
   @override
