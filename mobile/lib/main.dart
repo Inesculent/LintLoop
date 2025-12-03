@@ -13,10 +13,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Monaco Editor App',
+      title: 'LintLoop',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF000000),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1E1E1E),
+          foregroundColor: Colors.white,
+        ),
       ),
       home: const MonacoEditorScreen(),
     );
@@ -86,7 +91,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
             editor = monaco.editor.create(document.getElementById('container'), {
                 value: '// Write your code here...',
                 language: 'javascript',
-                theme: 'vs-dark',
+                theme: 'hc-black',
                 automaticLayout: true,
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -148,7 +153,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Monaco Editor'),
+        title: const Text('LintLoop'),
         elevation: 2,
       ),
       body: Padding(
