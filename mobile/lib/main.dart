@@ -38,7 +38,7 @@ class MonacoEditorScreen extends StatefulWidget {
 class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   bool _isInstructionsExpanded = false;
   final String _instructions = '''1. Two Sum
-  Given an array of integersÂ numsÂ and an integerÂ target, returnÂ indices of the two numbers such that they add up toÂ target. You may assume that each input would haveÂ exactlyÂ one solution, and you may not use theÂ sameÂ element twice. You can return the answer in any order.''';
+  Given an array of integersÃ‚ numsÃ‚ and an integerÃ‚ target, returnÃ‚ indices of the two numbers such that they add up toÃ‚ target. You may assume that each input would haveÃ‚ exactlyÃ‚ one solution, and you may not use theÃ‚ sameÃ‚ element twice. You can return the answer in any order.''';
   bool _isExamplesExpanded = false;
   final String _examples = '''
   Example 1:
@@ -305,7 +305,8 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Instructions box with expand button
+            // Instructions box with expand button - hidden when editor is expanded
+            if (!_isEditorExpanded)
             Container(
               decoration: BoxDecoration(
                 color: Colors.blue[50],
@@ -365,9 +366,11 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
               ),
             ),
             
+            if (!_isEditorExpanded)
             const SizedBox(height: 12),
             
-            // Examples box with expand button
+            // Examples box with expand button - hidden when editor is expanded
+            if (!_isEditorExpanded)
             Container(
               decoration: BoxDecoration(
                 color: Colors.green[50],
@@ -428,9 +431,11 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
               ),
             ),
             
+            if (!_isEditorExpanded)
             const SizedBox(height: 16),
             
-            // Language dropdown and Run button
+            // Language dropdown and Run button - hidden when editor is expanded
+            if (!_isEditorExpanded)
             Row(
               children: [
                 Expanded(
@@ -482,11 +487,11 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
               ],
             ),
             
+            if (!_isEditorExpanded)
             const SizedBox(height: 16),
             
             // Monaco Editor with expand button
             Expanded(
-              flex: _isEditorExpanded ? 3 : 1,
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
