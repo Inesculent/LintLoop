@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'main.dart';
+import 'home.dart';
 
 void main() {
   runApp(const WhiteboardApp());
@@ -169,15 +171,26 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
     // Handle navigation based on selected index
     if (index == 0) {
       // Navigate to Home
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Home selected'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      ).then((_) {
+        // Reset to Whiteboard tab when returning from Home
+        setState(() {
+          _selectedIndex = 2;
+        });
+      });
     } else if (index == 1) {
-      // Navigate back to Code screen
-      Navigator.pop(context);
+      // Navigate to Code screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const MonacoEditorScreen()),
+      ).then((_) {
+        // Reset to Whiteboard tab when returning from Code
+        setState(() {
+          _selectedIndex = 2;
+        });
+      });
     }
     // index == 2 is the current Whiteboard screen, so do nothing
   }

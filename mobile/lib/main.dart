@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'whiteboard.dart';
+import 'home.dart';
 // import 'dart:convert';
 
 void main() {
@@ -276,12 +277,15 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
       setState(() {
         _selectedIndex = index;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Home selected'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      ).then((_) {
+        // Reset to Code tab when returning from Home
+        setState(() {
+          _selectedIndex = 1;
+        });
+      });
     } else if (index == 2) {
       // Navigate to Whiteboard
       setState(() {
