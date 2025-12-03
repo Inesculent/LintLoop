@@ -184,7 +184,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
       _showOutputDialog(output);
     }
     
-    // print('Code to run:\n$cleanCode');
+    print('Code to run:\n$cleanCode');
   }
 
   void _showOutputDialog(String output) {
@@ -270,13 +270,12 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    
     // Handle navigation based on selected index
     if (index == 0) {
       // Navigate to Home
+      setState(() {
+        _selectedIndex = index;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Home selected'),
@@ -285,10 +284,18 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
       );
     } else if (index == 2) {
       // Navigate to Whiteboard
+      setState(() {
+        _selectedIndex = index;
+      });
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const WhiteboardPage()),
-      );
+      ).then((_) {
+        // Reset to Code tab when returning from Whiteboard
+        setState(() {
+          _selectedIndex = 1;
+        });
+      });
     }
     // index == 1 is the current Code screen, so do nothing
   }
