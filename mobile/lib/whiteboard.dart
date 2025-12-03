@@ -97,44 +97,45 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
           ),
           // Canvas
           Expanded(
-            child: GestureDetector(
-              onPanStart: (details) {
-                setState(() {
-                  drawingPoints.add(
-                    DrawingPoint(
-                      offset: details.localPosition,
-                      paint: Paint()
-                        ..color = isEraser ? Colors.white : selectedColor
-                        ..strokeWidth = isEraser ? 20 : 3
-                        ..strokeCap = StrokeCap.round,
-                    ),
-                  );
-                });
-              },
-              onPanUpdate: (details) {
-                setState(() {
-                  drawingPoints.add(
-                    DrawingPoint(
-                      offset: details.localPosition,
-                      paint: Paint()
-                        ..color = isEraser ? Colors.white : selectedColor
-                        ..strokeWidth = isEraser ? 20 : 3
-                        ..strokeCap = StrokeCap.round,
-                    ),
-                  );
-                });
-              },
-              onPanEnd: (details) {
-                setState(() {
-                  drawingPoints.add(DrawingPoint(offset: null, paint: Paint()));
-                });
-              },
-              child: CustomPaint(
-                painter: DrawingPainter(drawingPoints: drawingPoints),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: Colors.white,
+            child: Container(
+              color: Colors.white,
+              child: GestureDetector(
+                onPanStart: (details) {
+                  setState(() {
+                    drawingPoints.add(
+                      DrawingPoint(
+                        offset: details.localPosition,
+                        paint: Paint()
+                          ..color = isEraser ? Colors.white : selectedColor
+                          ..strokeWidth = isEraser ? 20 : 3
+                          ..strokeCap = StrokeCap.round
+                          ..isAntiAlias = true,
+                      ),
+                    );
+                  });
+                },
+                onPanUpdate: (details) {
+                  setState(() {
+                    drawingPoints.add(
+                      DrawingPoint(
+                        offset: details.localPosition,
+                        paint: Paint()
+                          ..color = isEraser ? Colors.white : selectedColor
+                          ..strokeWidth = isEraser ? 20 : 3
+                          ..strokeCap = StrokeCap.round
+                          ..isAntiAlias = true,
+                      ),
+                    );
+                  });
+                },
+                onPanEnd: (details) {
+                  setState(() {
+                    drawingPoints.add(DrawingPoint(offset: null, paint: Paint()));
+                  });
+                },
+                child: CustomPaint(
+                  painter: DrawingPainter(drawingPoints: drawingPoints),
+                  size: Size.infinite,
                 ),
               ),
             ),
