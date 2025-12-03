@@ -41,40 +41,25 @@ export default function ProfilePage() {
         });
         
         if (!response.ok) throw new Error('Failed to fetch profile');
-        
-        // Temporary mock data until backend is ready
-        const mockProfile: UserProfile = {
-          username: 'CodingNinja',
-          email: 'user@example.com',
-          joinedDate: '2025-08-15T10:30:00Z',
+        const data = await response.json();
+
+        // Map backend user object to front-end profile shape
+        const mapped: UserProfile = {
+          username: data.username || data.email || 'User',
+          email: data.email || '',
+          joinedDate: data.createdAt || data.updatedAt || new Date().toISOString(),
           stats: {
-            totalSubmissions: 127,
-            problemsSolved: 45,
-            acceptanceRate: 78.5,
-            averageScore: 85.2,
-            streak: 12,
-            rank: 342
+            totalSubmissions: data.totalSubmissions ?? 0,
+            problemsSolved: data.problems_solved ?? 0,
+            acceptanceRate: Math.round((data.problems_solved && data.totalSubmissions) ? ((data.problems_solved / data.totalSubmissions) * 100) : (data.acceptanceRate ?? 0) * 10) || 0,
+            averageScore: data.averageScore ?? 0,
+            streak: data.streak ?? 0,
+            rank: data.rank ?? 0
           },
-          recentActivity: [
-            {
-              date: '2025-10-26T13:45:00Z',
-              action: 'Solved',
-              details: 'Two Sum (Easy)'
-            },
-            {
-              date: '2025-10-25T16:20:00Z',
-              action: 'Attempted',
-              details: 'Valid Parentheses (Easy)'
-            },
-            {
-              date: '2025-10-24T11:10:00Z',
-              action: 'Solved',
-              details: 'Merge Intervals (Medium)'
-            }
-          ]
+          recentActivity: (data.recentActivity || []).map((a: any) => ({ date: a.date, action: a.action, details: a.details }))
         };
-        
-        setProfile(mockProfile);
+
+        setProfile(mapped);
       } catch (error) {
         console.error('Profile fetch error:', error);
       } finally {
