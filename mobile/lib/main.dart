@@ -38,7 +38,7 @@ class MonacoEditorScreen extends StatefulWidget {
 class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   bool _isInstructionsExpanded = false;
   final String _instructions = '''1. Two Sum
-  Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.''';
+  Given an array of integersÂ numsÂ and an integerÂ target, returnÂ indices of the two numbers such that they add up toÂ target. You may assume that each input would haveÂ exactlyÂ one solution, and you may not use theÂ sameÂ element twice. You can return the answer in any order.''';
   bool _isExamplesExpanded = false;
   final String _examples = '''
   Example 1:
@@ -52,6 +52,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   bool _isEditorExpanded = false;
   String _selectedLanguage = 'cpp';
   late WebViewController _webViewController;
+  int _selectedIndex = 1; // Code is selected by default
 
   final List<String> _languages = [
     'cpp',
@@ -147,27 +148,27 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
     _webViewController.runJavaScript('setLanguage("$language")');
   }
 
-void _runCode() async {
-  final code = await _webViewController
-      .runJavaScriptReturningResult('getCode()') as String;
-  
-  // Remove quotes from the result
-  final cleanCode = code.replaceAll('"', '').replaceAll('\\n', '\n');
-  
-  if (mounted) {
-    // Show loading snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Running $_selectedLanguage code...'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+  void _runCode() async {
+    final code = await _webViewController
+        .runJavaScriptReturningResult('getCode()') as String;
     
-    // Simulate code execution (replace with actual API call)
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Remove quotes from the result
+    final cleanCode = code.replaceAll('"', '').replaceAll('\\n', '\n');
     
-    // Mock output - replace this with actual execution result
-    String output = '''Status: Accepted!
+    if (mounted) {
+      // Show loading snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Running $_selectedLanguage code...'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+      
+      // Simulate code execution (replace with actual API call)
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Mock output - replace this with actual execution result
+      String output = '''Status: Accepted!
 
     Problem: 1. Two Sum
 
@@ -177,95 +178,120 @@ void _runCode() async {
 
     Execution Time: 60ms
     ''';
+      
+      // Show output dialog
+      _showOutputDialog(output);
+    }
     
-    // Show output dialog
-    _showOutputDialog(output);
+    print('Code to run:\n$cleanCode');
   }
-  
-  print('Code to run:\n$cleanCode');
-}
 
-void _showOutputDialog(String output) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          constraints: const BoxConstraints(
-            maxWidth: 600,
-            maxHeight: 500,
+  void _showOutputDialog(String output) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Results',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-              ),
-              // Output content
-              Flexible(
-                child: Container(
-                  width: double.infinity,
+          child: Container(
+            constraints: const BoxConstraints(
+              maxWidth: 600,
+              maxHeight: 500,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
                   padding: const EdgeInsets.all(16),
-                  child: SingleChildScrollView(
-                    child: SelectableText(
-                      output.isEmpty ? 'No output' : output,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 14,
-                        color: Colors.grey[800],
+                  decoration: BoxDecoration(
+                    color: Colors.grey[800],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Results',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Output content
+                Flexible(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        output.isEmpty ? 'No output' : output,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 14,
+                          color: Colors.grey[800],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              // Footer with action buttons
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Close'),
-                    ),
-                  ],
+                // Footer with action buttons
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    
+    // Handle navigation based on selected index
+    if (index == 0) {
+      // Navigate to Home
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Home selected'),
+          duration: Duration(seconds: 1),
         ),
       );
-    },
-  );
-}
+    } else if (index == 2) {
+      // Navigate to Whiteboard
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Whiteboard selected'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -520,6 +546,25 @@ void _showOutputDialog(String output) {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.code),
+            label: 'Code',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.draw),
+            label: 'Whiteboard',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        onTap: _onItemTapped,
       ),
     );
   }
