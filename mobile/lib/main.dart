@@ -225,10 +225,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
+                      // Top-right close icon removed to prevent exit button appearance.
                     ],
                   ),
                 ),

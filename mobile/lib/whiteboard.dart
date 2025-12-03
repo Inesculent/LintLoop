@@ -42,14 +42,14 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
         automaticallyImplyLeading: false,
         title: const Text('LintLoop'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.clear),
+          TextButton(
             onPressed: () {
               setState(() {
                 drawingPoints.clear();
               });
             },
-            tooltip: 'Clear All',
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            child: const Text('Clear'),
           ),
         ],
       ),
