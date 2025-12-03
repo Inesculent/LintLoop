@@ -37,16 +37,18 @@ class MonacoEditorScreen extends StatefulWidget {
 
 class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   bool _isInstructionsExpanded = false;
-  final String _instructions = '''Welcome to LintLoop Code Editor!
+  final String _instructions = '''1. Two Sum
+  Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.''';
+  bool _isExamplesExpanded = false;
+  final String _examples = '''
+  Example 1:
+  * Input: nums = [2,7,11,15], target = 9
+  * Output: [0,1]
+  * Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].
 
-Instructions:
-1. Select your programming language from the dropdown menu
-2. Write your code in the editor below
-3. Click the Run button to execute your code
-4. View the output in the popup dialog
-
-Supported languages include C++, Java, Python, JavaScript, and many more.
-Happy coding!''';
+  Example 2:
+  * Input: nums = [3,2,4], target = 6
+  * Output: [1,2]''';
   bool _isEditorExpanded = false;
   String _selectedLanguage = 'cpp';
   late WebViewController _webViewController;
@@ -328,6 +330,69 @@ void _showOutputDialog(String output) {
                             fontSize: 14,
                             color: Colors.grey[800],
                             height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Examples box with expand button
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.green[200]!, width: 2),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.code, color: Colors.green[700]),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Examples',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: Icon(_isExamplesExpanded 
+                              ? Icons.expand_less 
+                              : Icons.expand_more),
+                          onPressed: () {
+                            setState(() {
+                              _isExamplesExpanded = !_isExamplesExpanded;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_isExamplesExpanded)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _examples,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[800],
+                            height: 1.5,
+                            fontFamily: 'monospace',
                           ),
                         ),
                       ),
