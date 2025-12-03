@@ -1,0 +1,48 @@
+name: lintloop
+description: Monaco Editor on mobile for solving Leetcode problems.
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & Styling
+  cupertino_icons: ^1.0.2
+  google_fonts: ^6.2.0
+
+  # State management (choose one)
+  provider: ^6.1.2
+  # riverpod: ^3.0.0   # optional alternative
+
+  # Navigation
+  go_router: ^14.1.1
+
+  # HTTP requests / APIs
+  http: ^1.2.0
+
+  # Local storage
+  shared_preferences: ^2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.4.2
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  fonts:
+    - family: CustomFont
+      fonts:
+        - asset: assets/fonts/CustomFont-Regular.ttf
+        - asset: assets/fonts/CustomFont-Bold.ttf
+          weight: 700
