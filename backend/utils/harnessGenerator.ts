@@ -22,185 +22,182 @@ export interface TestCase {
   output: any;
 }
 
+// Generate a generic test harness that accepts test case data via stdin
 export function generateTestHarness(
   problem: ProblemDefinition,
-  language: string,
-  testCases: TestCase[]
+  language: string
 ): string {
   switch (language) {
     case "java":
-      return generateJavaHarness(problem, testCases);
+      return generateJavaHarness(problem);
     case "python":
-      return generatePythonHarness(problem, testCases);
+      return generatePythonHarness(problem);
     case "javascript":
-      return generateJavaScriptHarness(problem, testCases);
+      return generateJavaScriptHarness(problem);
     default:
       throw new Error(`Unsupported language: ${language}`);
   }
 }
 
 
-function generateJavaHarness(problem: ProblemDefinition, testCases: TestCase[]): string {
+function generateJavaHarness(problem: ProblemDefinition): string {
   const functionSig = problem.functionSignatures?.java;
   if (!functionSig) throw new Error("No Java function signature defined for this problem");
 
-  const testInputs = testCases.map(tc => tc.input);
-  const expectedOutputs = testCases.map(tc => tc.output);
-
-  const inputArrays = generateJavaInputArrays(functionSig, testInputs);
-  const outputArray = generateJavaOutputArray(functionSig.returnType ?? "", expectedOutputs);
-
   return `import java.util.*;
+import java.nio.file.*;
+import com.google.gson.*;
 
 public class Main {
     public static void main(String[] args) {
-        Solution solution = new Solution();
-        
-${inputArrays}
-        
-${outputArray}
-        
-        int passed = 0;
-        int total = ${testCases.length};
-        
-        System.out.println("{");
-        System.out.println("  \\"results\\": [");
-        
-        for (int i = 0; i < total; i++) {
-            try {
-                long startTime = System.nanoTime();
-                ${generateJavaFunctionCall(functionSig, testCases.length)}
-                long endTime = System.nanoTime();
-                
-                boolean isPassed = ${generateJavaComparison(functionSig.returnType ?? "")};
-                
-                if (isPassed) passed++;
-                
-                System.out.println("    {");
-                System.out.println("      \\"testNumber\\": " + i + ",");
-                System.out.println("      \\"passed\\": " + isPassed + ",");
-                System.out.println("      \\"input\\": \\"" + ${generateJavaInputString(functionSig)} + "\\",");
-                System.out.println("      \\"actual\\": \\"" + ${generateJavaToString(
-                  functionSig.returnType ?? "",
-                  "result"
-                )} + "\\",");
-                System.out.println("      \\"expected\\": \\"" + ${generateJavaToString(
-                  functionSig.returnType ?? "",
-                  "expected[i]"
-                )} + "\\",");
-                System.out.println("      \\"executionTime\\": " + ((endTime - startTime) / 1000000.0));
-                System.out.print("    }");
-                if (i < total - 1) System.out.println(",");
-                else System.out.println();
-                
-            } catch (Exception e) {
-                System.out.println("    {");
-                System.out.println("      \\"testNumber\\": " + i + ",");
-                System.out.println("      \\"passed\\": false,");
-                System.out.println("      \\"error\\": \\"" + e.getMessage() + "\\"");
-                System.out.print("    }");
-                if (i < total - 1) System.out.println(",");
-                else System.out.println();
+        try {
+            Solution solution = new Solution();
+            
+            // Read test cases from JSON file
+            String content = new String(Files.readAllBytes(Paths.get("test_cases.json")));
+            JsonObject data = JsonParser.parseString(content).getAsJsonObject();
+            JsonArray inputs = data.getAsJsonArray("inputs");
+            JsonArray outputs = data.getAsJsonArray("outputs");
+            
+            int passed = 0;
+            int total = inputs.size();
+            
+            System.out.println("{");
+            System.out.println("  \\"results\\": [");
+            
+            for (int i = 0; i < total; i++) {
+                try {
+                    JsonObject testInput = inputs.get(i).getAsJsonObject();
+                    JsonElement expectedOutput = outputs.get(i);
+                    
+                    long startTime = System.nanoTime();
+                    ${generateJavaFunctionCallFromJson(functionSig)}
+                    long endTime = System.nanoTime();
+                    
+                    boolean isPassed = ${generateJavaComparisonFromJson(functionSig.returnType ?? "")};
+                    
+                    if (isPassed) passed++;
+                    
+                    System.out.println("    {");
+                    System.out.println("      \\"testNumber\\": " + i + ",");
+                    System.out.println("      \\"passed\\": " + isPassed + ",");
+                    System.out.println("      \\"input\\": \\"" + testInput + "\\",");
+                    System.out.println("      \\"actual\\": \\"" + result + "\\",");
+                    System.out.println("      \\"expected\\": \\"" + expectedOutput + "\\",");
+                    System.out.println("      \\"executionTime\\": " + ((endTime - startTime) / 1000000.0));
+                    System.out.print("    }");
+                    if (i < total - 1) System.out.println(",");
+                    else System.out.println();
+                    
+                } catch (Exception e) {
+                    System.out.println("    {");
+                    System.out.println("      \\"testNumber\\": " + i + ",");
+                    System.out.println("      \\"passed\\": false,");
+                    System.out.println("      \\"error\\": \\"" + e.getMessage() + "\\"");
+                    System.out.print("    }");
+                    if (i < total - 1) System.out.println(",");
+                    else System.out.println();
+                }
             }
+            
+            System.out.println("  ],");
+            System.out.println("  \\"passedTests\\": " + passed + ",");
+            System.out.println("  \\"totalTests\\": " + total + ",");
+            System.out.println("  \\"status\\": \\"" + (passed == total ? "Accepted" : "Wrong Answer") + "\\"");
+            System.out.println("}");
+            
+        } catch (Exception e) {
+            System.err.println("Failed to read test cases: " + e.getMessage());
         }
-        
-        System.out.println("  ],");
-        System.out.println("  \\"passedTests\\": " + passed + ",");
-        System.out.println("  \\"totalTests\\": " + total + ",");
-        System.out.println("  \\"status\\": \\"" + (passed == total ? "Accepted" : "Wrong Answer") + "\\"");
-        System.out.println("}");
     }
+    
+    // Helper methods for JSON parsing
+    ${generateJavaJsonHelpers(functionSig)}
 }`;
 }
 
-function generateJavaInputArrays(functionSig: FunctionSignature, testInputs: Record<string, any>[]): string {
-  const params = functionSig.parameters;
-  const arrays: string[] = [];
-
-  params.forEach(param => {
-    const { name: paramName, type: paramType } = param;
-    const values = testInputs.map(input => input[paramName]);
-
-    if (paramType === "int[]") {
-      const arrayLiteral = values
-        .map(val => `{${Array.isArray(val) ? val.join(", ") : val}}`)
-        .join(",\n            ");
-      arrays.push(`        int[][] ${paramName}Inputs = {\n            ${arrayLiteral}\n        };`);
-    } else if (paramType === "int") {
-      arrays.push(`        int[] ${paramName}Inputs = {${values.join(", ")}};`);
-    } else if (paramType === "String") {
-      const arrayLiteral = values.map(val => `"${val}"`).join(", ");
-      arrays.push(`        String[] ${paramName}Inputs = {${arrayLiteral}};`);
-    }
-  });
-
-  return arrays.join("\n");
+function generateJavaFunctionCallFromJson(functionSig: FunctionSignature): string {
+  const params = functionSig.parameters.map(p => `parse${capitalize(p.type)}(testInput, "${p.name}")`).join(", ");
+  return `${functionSig.returnType ?? "var"} result = solution.${functionSig.name}(${params});`;
 }
 
-function generateJavaOutputArray(returnType: string, expectedOutputs: any[]): string {
-  if (returnType === "int[]") {
-    const arrayLiteral = expectedOutputs
-      .map(output => `{${Array.isArray(output) ? output.join(", ") : output}}`)
-      .join(",\n            ");
-    return `        int[][] expected = {\n            ${arrayLiteral}\n        };`;
-  } else if (returnType === "int") {
-    return `        int[] expected = {${expectedOutputs.join(", ")}};`;
-  } else if (returnType === "String") {
-    const arrayLiteral = expectedOutputs.map(o => `"${o}"`).join(", ");
-    return `        String[] expected = {${arrayLiteral}};`;
-  }
-  return `        Object[] expected = {}; // TODO: Handle ${returnType}`;
-}
-
-function generateJavaFunctionCall(functionSig: FunctionSignature, _numTests: number): string {
-  const args = functionSig.parameters.map(p => `${p.name}Inputs[i]`).join(", ");
-  return `${functionSig.returnType ?? "var"} result = solution.${functionSig.name}(${args});`;
-}
-
-function generateJavaComparison(returnType: string): string {
+function generateJavaComparisonFromJson(returnType: string): string {
   switch (returnType) {
     case "int[]":
-      return "Arrays.equals(result, expected[i])";
+      return "Arrays.equals(result, parseIntArray(expectedOutput))";
     case "int":
-      return "result == expected[i]";
+      return "result == expectedOutput.getAsInt()";
     case "String":
-      return "result.equals(expected[i])";
+      return "result.equals(expectedOutput.getAsString())";
     default:
       return "false";
   }
 }
 
-function generateJavaToString(returnType: string, varName: string): string {
-  return returnType === "int[]" ? `Arrays.toString(${varName})` : varName;
+function generateJavaJsonHelpers(functionSig: FunctionSignature): string {
+  const helpers: string[] = [];
+  const types = new Set(functionSig.parameters.map(p => p.type));
+  
+  if (types.has("int")) {
+    helpers.push(`
+    private static int parseInt(JsonObject obj, String key) {
+        return obj.get(key).getAsInt();
+    }`);
+  }
+  
+  if (types.has("int[]")) {
+    helpers.push(`
+    private static int[] parseIntArray(JsonObject obj, String key) {
+        JsonArray arr = obj.getAsJsonArray(key);
+        int[] result = new int[arr.size()];
+        for (int i = 0; i < arr.size(); i++) {
+            result[i] = arr.get(i).getAsInt();
+        }
+        return result;
+    }
+    
+    private static int[] parseIntArray(JsonElement elem) {
+        JsonArray arr = elem.getAsJsonArray();
+        int[] result = new int[arr.size()];
+        for (int i = 0; i < arr.size(); i++) {
+            result[i] = arr.get(i).getAsInt();
+        }
+        return result;
+    }`);
+  }
+  
+  if (types.has("String")) {
+    helpers.push(`
+    private static String parseString(JsonObject obj, String key) {
+        return obj.get(key).getAsString();
+    }`);
+  }
+  
+  return helpers.join("\n");
 }
 
-function generateJavaInputString(functionSig: FunctionSignature): string {
-  const params = functionSig.parameters.map(p => {
-    if (p.type === "int[]") {
-      return `Arrays.toString(${p.name}Inputs[i])`;
-    }
-    return `${p.name}Inputs[i]`;
-  });
-  return params.join(' + ", " + ');
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
 
 /* ---------------------------- PYTHON HARNESS ---------------------------- */
 
-function generatePythonHarness(problem: ProblemDefinition, testCases: TestCase[]): string {
+function generatePythonHarness(problem: ProblemDefinition): string {
   const functionSig = problem.functionSignatures?.python;
   if (!functionSig) throw new Error("No Python function signature defined for this problem");
 
   const functionName = functionSig.name;
-  const params = functionSig.parameters;
-  const testInputsCode = generatePythonTestInputs(params, testCases);
-  const expectedOutputsCode = generatePythonExpectedOutputs(testCases);
 
   return `import json
 import time
 from typing import List, Optional
 
-test_cases = ${testInputsCode}
-expected_outputs = ${expectedOutputsCode}
+# Read test cases from file
+with open('test_cases.json', 'r') as f:
+    data = json.load(f)
+    test_cases = data['inputs']
+    expected_outputs = data['outputs']
 
 def run_tests():
     results = []
@@ -248,24 +245,63 @@ if __name__ == "__main__":
 `;
 }
 
-function generatePythonTestInputs(params: FunctionParameter[], testCases: TestCase[]): string {
-  const pythonTestCases = testCases.map(tc => {
-    const inputDict: Record<string, any> = {};
-    params.forEach(param => {
-      inputDict[param.name] = tc.input[param.name];
-    });
-    return inputDict;
-  });
-  return JSON.stringify(pythonTestCases, null, 2);
+
+function generateJavaScriptHarness(problem: ProblemDefinition): string {
+  const functionSig = problem.functionSignatures?.javascript;
+  if (!functionSig) throw new Error("No JavaScript function signature defined for this problem");
+
+  const functionName = functionSig.name;
+
+  return `const fs = require('fs');
+
+// Read test cases from file
+const data = JSON.parse(fs.readFileSync('test_cases.json', 'utf8'));
+const testCases = data.inputs;
+const expectedOutputs = data.outputs;
+
+function runTests() {
+    const results = [];
+    let passed = 0;
+    const total = testCases.length;
+    
+    for (let i = 0; i < total; i++) {
+        try {
+            const startTime = performance.now();
+            const result = ${functionName}(...Object.values(testCases[i]));
+            const endTime = performance.now();
+            
+            const expected = expectedOutputs[i];
+            const isPassed = JSON.stringify(result) === JSON.stringify(expected);
+            
+            if (isPassed) passed++;
+            
+            results.push({
+                testNumber: i,
+                passed: isPassed,
+                input: JSON.stringify(testCases[i]),
+                actual: JSON.stringify(result),
+                expected: JSON.stringify(expected),
+                executionTime: endTime - startTime
+            });
+        } catch (e) {
+            results.push({
+                testNumber: i,
+                passed: false,
+                error: e.message
+            });
+        }
+    }
+    
+    const output = {
+        results,
+        passedTests: passed,
+        totalTests: total,
+        status: passed === total ? "Accepted" : "Wrong Answer"
+    };
+    
+    console.log(JSON.stringify(output, null, 2));
 }
 
-function generatePythonExpectedOutputs(testCases: TestCase[]): string {
-  return JSON.stringify(testCases.map(tc => tc.output), null, 2);
-}
-
-
-function generateJavaScriptHarness(_problem: ProblemDefinition, testCases: TestCase[]): string {
-  return `// JavaScript harness generation not yet implemented
-// Test cases: ${testCases.length}
-console.log("JavaScript execution not yet implemented");`;
+runTests();
+`;
 }

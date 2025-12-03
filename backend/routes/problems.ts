@@ -1,9 +1,6 @@
 import express, { Request, Response } from 'express';
 import * as problemQueries from '../queries/problemQueries';
-import { authenticate } from '../middleware/authenticate';
 import { requireAdmin } from '../middleware/requireAdmin';
-
-
 
 const router = express.Router();
 
@@ -37,7 +34,7 @@ router.get('/:pid', async (req: Request, res: Response) => {
 
 
 // Create a new problem
-router.post('/', authenticate, requireAdmin, async (req: Request, res : Response) => {
+router.post('/', requireAdmin, async (req: Request, res : Response) => {
     try {
         const problem = await problemQueries.createProblem(req.body);
         return res.status(201).json(problem);
@@ -48,7 +45,7 @@ router.post('/', authenticate, requireAdmin, async (req: Request, res : Response
 });
 
 // Delete problem
-router.delete('/:pid', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.delete('/:pid', requireAdmin, async (req: Request, res: Response) => {
   try {
     const problem = await problemQueries.deleteProblemByPid(parseInt(req.params.pid));
     if (!problem) {

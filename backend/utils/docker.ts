@@ -218,14 +218,21 @@ async function pullImages(): Promise<void> {
 async function executeJavaSolution({
   solutionCode,
   mainCode,
+  testCases,
   timeout = 5000,
   memoryLimit = 512
-}: { solutionCode: string; mainCode: string; timeout?: number; memoryLimit?: number; }): Promise<ExecutionResult> {
+}: { solutionCode: string; mainCode: string; testCases: any[]; timeout?: number; memoryLimit?: number; }): Promise<ExecutionResult> {
   const startTime = Date.now();
   let container: Docker.Container | null = null;
   
   try {
     const image = 'eclipse-temurin:11-jdk';
+    
+    // Prepare test case data
+    const testCaseData = {
+      inputs: testCases.map(tc => tc.input),
+      outputs: testCases.map(tc => tc.output)
+    };
     
     // Create container
     container = await docker.createContainer({
@@ -249,6 +256,7 @@ async function executeJavaSolution({
     const pack = tar.pack();
     pack.entry({ name: 'Solution.java' }, solutionCode);
     pack.entry({ name: 'Main.java' }, mainCode);
+    pack.entry({ name: 'test_cases.json' }, JSON.stringify(testCaseData, null, 2));
     pack.finalize();
 
     // Put files into container
@@ -332,14 +340,21 @@ async function executeJavaSolution({
 async function executePythonSolution({
   solutionCode,
   testHarness,
+  testCases,
   timeout = 5000,
   memoryLimit = 256
-}: { solutionCode: string; testHarness: string; timeout?: number; memoryLimit?: number; }): Promise<ExecutionResult> {
+}: { solutionCode: string; testHarness: string; testCases: any[]; timeout?: number; memoryLimit?: number; }): Promise<ExecutionResult> {
   const startTime = Date.now();
   let container: Docker.Container | null = null;
   
   try {
     const image = 'python:3.9-slim';
+    
+    // Prepare test case data
+    const testCaseData = {
+      inputs: testCases.map(tc => tc.input),
+      outputs: testCases.map(tc => tc.output)
+    };
     
     // Combine solution code with test harness
     const fullCode = `${solutionCode}\n\n${testHarness}`;
@@ -347,15 +362,20 @@ async function executePythonSolution({
     // Create container
     container = await docker.createContainer({
       Image: image,
-      Cmd: ['python', '-c', fullCode],
+      Cmd: ['sh', '-c', 'echo "$TEST_DATA" > test_cases.json && python -c "$PYTHON_CODE"'],
+      WorkingDir: '/app',
       Tty: false,
       AttachStdout: true,
       AttachStderr: true,
+      Env: [
+        `TEST_DATA=${JSON.stringify(testCaseData)}`,
+        `PYTHON_CODE=${fullCode}`
+      ],
       HostConfig: {
         Memory: memoryLimit * 1024 * 1024,
         NanoCpus: 1000000000,
         NetworkMode: 'none',
-        ReadonlyRootfs: true,
+        ReadonlyRootfs: false, // Need to write test_cases.json
         PidsLimit: 50,
         AutoRemove: false
       }

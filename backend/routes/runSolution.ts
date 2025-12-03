@@ -3,7 +3,6 @@ import Problem from '../models/Problems';
 import Submission from '../models/Submissions';
 import { authenticate, AuthRequest } from '../middleware/authenticate';
 const dockerUtils = require('../utils/docker');
-const { generateTestHarness } = require('../utils/harnessGenerator');
 import { scoreSubmission } from '../utils/resultParsing';
 
 const router = express.Router();
@@ -40,8 +39,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'No test cases available for this problem' });
     }
 
-    // Generate dynamic test harness with all test cases
-    const testHarness = generateTestHarness(problem, language, allTestCases);
+    // Use pre-generated test harness from problem
+    const testHarness = problem.testHarness?.[language as 'python' | 'java' | 'javascript'];
+    if (!testHarness) {
+      return res.status(500).json({ 
+        error: `No test harness available for ${language}. Please contact an administrator.` 
+      });
+    }
 
     // Use problem's language-specific limits (server-controlled)
     const timeout = problem.timeLimit?.[language as 'python' | 'java' | 'javascript'] 
@@ -62,6 +66,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       let executionResult = await dockerUtils.executeJavaSolution({
         solutionCode,
         mainCode: testHarness,
+        testCases: allTestCases,
         timeout,
         memoryLimit
       });
@@ -126,6 +131,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       let executionResult = await dockerUtils.executePythonSolution({
         solutionCode,
         testHarness,
+        testCases: allTestCases,
         timeout,
         memoryLimit
       });
