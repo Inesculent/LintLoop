@@ -393,6 +393,62 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Language dropdown and Run button - hidden when editor is expanded
+            if (!_isEditorExpanded)
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedLanguage,
+                        isExpanded: true,
+                        items: _languages.map((String language) {
+                          return DropdownMenuItem<String>(
+                            value: language,
+                            child: Text(language.toUpperCase()),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _selectedLanguage = newValue;
+                            });
+                            _updateEditorLanguage(newValue);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(width: 12),
+                
+                ElevatedButton(
+                  onPressed: _runCode,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Run'),
+                ),
+              ],
+            ),
+            
+            if (!_isEditorExpanded)
+            const SizedBox(height: 16),
+            
             // Instructions box with expand button - hidden when editor is expanded
             if (!_isEditorExpanded)
             Container(
@@ -486,62 +542,6 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
             
             if (!_isEditorExpanded)
             const SizedBox(height: 12),
-            
-            if (!_isEditorExpanded)
-            const SizedBox(height: 16),
-            
-            // Language dropdown and Run button - hidden when editor is expanded
-            if (!_isEditorExpanded)
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedLanguage,
-                        isExpanded: true,
-                        items: _languages.map((String language) {
-                          return DropdownMenuItem<String>(
-                            value: language,
-                            child: Text(language.toUpperCase()),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedLanguage = newValue;
-                            });
-                            _updateEditorLanguage(newValue);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(width: 12),
-                
-                ElevatedButton(
-                  onPressed: _runCode,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Run'),
-                ),
-              ],
-            ),
             
             if (!_isEditorExpanded)
             const SizedBox(height: 16),
