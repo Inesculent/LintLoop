@@ -38,7 +38,7 @@ class MonacoEditorScreen extends StatefulWidget {
 class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   bool _isInstructionsExpanded = false;
   final String _instructions = '''1. Two Sum
-  Given an array of integersÃ‚ numsÃ‚ and an integerÃ‚ target, returnÃ‚ indices of the two numbers such that they add up toÃ‚ target. You may assume that each input would haveÃ‚ exactlyÃ‚ one solution, and you may not use theÃ‚ sameÃ‚ element twice. You can return the answer in any order.''';
+  Given an array of integers "nums" and an integer "target", return indices of the two numbers such that they add up to "target". You may assume that each input would have exactly one solution and you may not use the same element twice. You can return the answer in any order.''';
   bool _isExamplesExpanded = false;
   final String _examples = '''
   Example 1:
