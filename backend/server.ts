@@ -8,6 +8,7 @@ import runTestRoutes = require('./routes/runTest');
 import problemRoutes = require('./routes/problems');
 import submissionRoutes = require('./routes/submissions');
 import authRoutes from './routes/loginSignup';
+import userRoutes from './routes/user';
 import { authenticate, AuthRequest } from './middleware/authenticate';
 import User from './models/Users';
 import { verifyTransport } from './utils/email';
@@ -93,6 +94,8 @@ app.use('/api/run-solution', authenticate, runSolutionRoutes);
 app.use('/api/run-test', authenticate, runTestRoutes);
 app.use('/api/problems', authenticate, problemRoutes);
 app.use('/api/submissions', authenticate, submissionRoutes);
+// User management routes (profile updates, delete account)
+app.use('/api/users', authenticate, userRoutes);
 
 // Example: Protected profile endpoint
 app.get('/api/profile', authenticate, async (req: AuthRequest, res: Response) => {
