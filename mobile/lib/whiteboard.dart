@@ -30,6 +30,7 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
   List<DrawingPoint> drawingPoints = [];
   Color selectedColor = Colors.black;
   bool isEraser = false;
+  int _selectedIndex = 2; // Whiteboard is selected by default
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +139,47 @@ class _WhiteboardPageState extends State<WhiteboardPage> {
           ),
         ],
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.code),
+            label: 'Code',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.draw),
+            label: 'Whiteboard',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        onTap: _onItemTapped,
+      ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    
+    // Handle navigation based on selected index
+    if (index == 0) {
+      // Navigate to Home
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Home selected'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    } else if (index == 1) {
+      // Navigate back to Code screen
+      Navigator.pop(context);
+    }
+    // index == 2 is the current Whiteboard screen, so do nothing
   }
 
   Widget _buildToolButton({

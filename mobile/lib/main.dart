@@ -184,7 +184,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
       _showOutputDialog(output);
     }
     
-    print('Code to run:\n$cleanCode');
+    // print('Code to run:\n$cleanCode');
   }
 
   void _showOutputDialog(String output) {
