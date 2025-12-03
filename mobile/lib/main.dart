@@ -39,21 +39,28 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   final TextEditingController _inputController = TextEditingController();
   bool _isInputExpanded = false;
   bool _isEditorExpanded = false;
-  String _selectedLanguage = 'javascript';
+  String _selectedLanguage = 'cpp';
   late WebViewController _webViewController;
 
   final List<String> _languages = [
+    'cpp',
+    'java',
+    'python',
     'javascript',
     'typescript',
-    'python',
-    'java',
     'csharp',
-    'cpp',
+    'c',
     'go',
+    'kotlin',
+    'swift',
     'rust',
-    'html',
-    'css',
-    'json',
+    'ruby',
+    'php',
+    'dart',
+    'scala',
+    'elixir',
+    'erlang',
+    'racket'
   ];
 
   @override
@@ -90,7 +97,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
         require(['vs/editor/editor.main'], function() {
             editor = monaco.editor.create(document.getElementById('container'), {
                 value: '// Write your code here...',
-                language: 'javascript',
+                language: 'cpp',
                 theme: 'hc-black',
                 automaticLayout: true,
                 minimap: { enabled: false },
@@ -129,25 +136,124 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
     _webViewController.runJavaScript('setLanguage("$language")');
   }
 
-  void _runCode() async {
-    final code = await _webViewController
-        .runJavaScriptReturningResult('getCode()') as String;
+void _runCode() async {
+  final code = await _webViewController
+      .runJavaScriptReturningResult('getCode()') as String;
+  
+  // Remove quotes from the result
+  final cleanCode = code.replaceAll('"', '').replaceAll('\\n', '\n');
+  
+  if (mounted) {
+    // Show loading snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Running $_selectedLanguage code...'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
     
-    // Remove quotes from the result
-    final cleanCode = code.replaceAll('"', '').replaceAll('\\n', '\n');
+    // Simulate code execution (replace with actual API call)
+    await Future.delayed(const Duration(milliseconds: 500));
     
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Running $_selectedLanguage code...'),
-          duration: const Duration(seconds: 2),
+    // Mock output - replace this with actual execution result
+    String output = '''Program executed successfully!
+
+    Language: $_selectedLanguage
+    Code length: ${cleanCode.length} characters
+
+    --- Sample Output ---
+    Hello, World!
+    Execution completed in 0.23s
+    ''';
+    
+    // Show output dialog
+    _showOutputDialog(output);
+  }
+  
+  print('Code to run:\n$cleanCode');
+}
+
+void _showOutputDialog(String output) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(
+            maxWidth: 600,
+            maxHeight: 500,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Output',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              // Output content
+              Flexible(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      output.isEmpty ? 'No output' : output,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 14,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Footer with action buttons
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       );
-    }
-    
-    // Here you would integrate with a code execution API
-    print('Code to run:\n$cleanCode');
-  }
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
