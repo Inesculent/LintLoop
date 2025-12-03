@@ -167,14 +167,15 @@ void _runCode() async {
     await Future.delayed(const Duration(milliseconds: 500));
     
     // Mock output - replace this with actual execution result
-    String output = '''Program executed successfully!
+    String output = '''Status: Accepted!
+
+    Problem: 1. Two Sum
 
     Language: $_selectedLanguage
-    Code length: ${cleanCode.length} characters
 
-    --- Sample Output ---
-    Hello, World!
-    Execution completed in 0.23s
+    Tests Passed: 3/3
+
+    Execution Time: 60ms
     ''';
     
     // Show output dialog
@@ -214,7 +215,7 @@ void _showOutputDialog(String output) {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Output',
+                      'Results',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
