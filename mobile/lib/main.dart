@@ -41,7 +41,6 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   bool _isInstructionsExpanded = false;
   final String _instructions = '''1. Two Sum
   Given an array of integers "nums" and an integer "target", return indices of the two numbers such that they add up to "target". You may assume that each input would have exactly one solution and you may not use the same element twice. You can return the answer in any order.''';
-  bool _isExamplesExpanded = false;
   final String _examples = '''
   Example 1:
   * Input: nums = [2,7,11,15], target = 9
@@ -51,6 +50,7 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
   Example 2:
   * Input: nums = [3,2,4], target = 6
   * Output: [1,2]''';
+
   bool _isEditorExpanded = false;
   String _selectedLanguage = 'cpp';
   late WebViewController _webViewController;
@@ -267,6 +267,85 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
     );
   }
 
+  void _showExamplesDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            constraints: const BoxConstraints(
+              maxWidth: 600,
+              maxHeight: 500,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green[700],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Examples',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Examples content
+                Flexible(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        _examples,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 13,
+                          color: Colors.grey[800],
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Footer with close button
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _onItemTapped(int index) {
     // Handle navigation based on selected index
     if (index == 0) {
@@ -354,21 +433,51 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
                   if (_isInstructionsExpanded)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          _instructions,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[800],
-                            height: 1.4,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: SingleChildScrollView(
+                              child: Text(
+                                _instructions,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[800],
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          // Examples button that opens a pop-up
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.green[200]!, width: 1),
+                            ),
+                            child: ListTile(
+                              leading: Icon(Icons.code, color: Colors.green[700], size: 16),
+                              title: const Text(
+                                'Examples',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              trailing: Icon(Icons.open_in_new, color: Colors.green[700], size: 16),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              onTap: () {
+                                _showExamplesDialog();
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -377,68 +486,6 @@ class _MonacoEditorScreenState extends State<MonacoEditorScreen> {
             
             if (!_isEditorExpanded)
             const SizedBox(height: 12),
-            
-            // Examples box with expand button - hidden when editor is expanded
-            if (!_isEditorExpanded)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.green[200]!, width: 2),
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      children: [
-                        Icon(Icons.code, color: Colors.green[700], size: 18),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Examples',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: Icon(_isExamplesExpanded 
-                              ? Icons.expand_less 
-                              : Icons.expand_more),
-                          onPressed: () {
-                            setState(() {
-                              _isExamplesExpanded = !_isExamplesExpanded;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_isExamplesExpanded)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          _examples,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[800],
-                            height: 1.4,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
             
             if (!_isEditorExpanded)
             const SizedBox(height: 16),
